@@ -70,6 +70,7 @@ function pinTab(tab) {
 function tabLabel(tab) {
   var node = tab && tab.node;
   if (!node) return '文件';
+  if (node.readme) return '使用说明';
   return node.name || basename(node.path) || '文件';
 }
 
@@ -201,7 +202,7 @@ function activateTab(tab, opts) {
   return Promise.resolve(loadFileIntoView(tab.node, nextOpts)).then(function () {
     if (S.activeTab === tab) {
       if (!nextOpts.anchor) els.scroll.scrollTop = scroll;
-      updateActiveRow(tab.node.virtualParent ? null : tab.node.path);
+      updateActiveRow(tab.node.virtualParent || tab.node.readme ? null : tab.node.path);
       scrollActiveTabIntoView();
     }
     return true;
@@ -216,12 +217,7 @@ function openFile(node, opts) {
   opts = opts || {};
   if (!node) return Promise.resolve(false);
   if (S.editSaving) { toast('正在保存，请稍候…', 1800); return Promise.resolve(false); }
-  if (node.readme) {
-    if (S.activeTab && !saveActiveTabState()) return Promise.resolve(false);
-    S.activeTab = null;
-    renderTabBar();
-    return Promise.resolve(loadFileIntoView(node, opts));
-  }
+  if (node.readme) opts.pinned = true;
   var existing = findTabById(tabIdOf(node));
   if (existing) {
     if (opts.pinned) pinTab(existing);

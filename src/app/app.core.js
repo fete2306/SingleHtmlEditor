@@ -12,7 +12,7 @@ var MAX_FILES = 5000;
 var SKIP = { 'node_modules': 1, '.git': 1, '.svn': 1, '.hg': 1, '.idea': 1, '.vscode': 1, '__pycache__': 1, 'bower_components': 1, '$RECYCLE.BIN': 1, 'System Volume Information': 1 };
 
 var S = {
-  mode: '', rootName: '', root: null, files: [], fileByPath: new Map(), fileByPathLower: new Map(),
+  mode: 'welcome', rootName: '', root: null, files: [], fileByPath: new Map(), fileByPathLower: new Map(),
   dirByPath: new Map(), expanded: new Set(), current: null, raw: '', currentBlob: null, currentKind: '',
   sourceMode: false, outline: [], outlineItems: [], activeHeading: -1, filter: '', paletteOpen: false,
   paletteMatches: [], paletteIndex: 0, lightboxOpen: false, theme: 'dark', toastTimer: 0, openToken: 0,
@@ -26,12 +26,12 @@ var S = {
 };
 
 var els = {};
-['sidebar','tree','filter','filterBox','filterClear','rootName','modePill','fileTotal','sideHint','content','welcome','welcomeMeta','welcomeSample','welcomeOpen','welcomeFiles','scroll','crumbs','main','outline','outlineList','progressBar','statusMode','statusPath','statusInfo','statusStats','statusDot','palette','paletteInput','paletteList','lightbox','lightboxImg','lbCaption','lbClose','toast','dropOverlay','fileInput','folderInput','activitybar','btnExplorer','btnActivityPalette','btnActivityHelp','btnActivityTheme','btnTheme','btnSource','btnOutline','btnCopyPath','btnPalette','btnOpenDir','btnOpenFiles','btnOpenDir2','btnOpenFiles2','btnRefresh','btnCollapse','btnMenu','btnOutlineClose','backdrop','resizer','btnPrev','btnNext','btnDownload','btnWrap','encoding','btnEdit','tabbar','tabstrip'].forEach(function (id) { els[id] = document.getElementById(id); });
+['sidebar','tree','filter','filterBox','filterClear','rootName','modePill','fileTotal','sideHint','content','welcome','welcomeMeta','welcomeSample','welcomeOpen','welcomeFiles','welcomeHelp','welcomePalette','scroll','crumbs','main','outline','outlineList','progressBar','statusMode','statusPath','statusInfo','statusStats','statusDot','palette','paletteInput','paletteList','lightbox','lightboxImg','lbCaption','lbClose','toast','dropOverlay','fileInput','folderInput','activitybar','btnExplorer','btnActivityPalette','btnActivityHelp','btnActivityTheme','btnTheme','btnSource','btnOutline','btnCopyPath','btnPalette','btnOpenDir','btnOpenFiles','btnOpenDir2','btnOpenFiles2','btnRefresh','btnCollapse','btnMenu','btnOutlineClose','backdrop','resizer','btnPrev','btnNext','btnDownload','btnWrap','encoding','btnEdit','tabbar','tabstrip'].forEach(function (id) { els[id] = document.getElementById(id); });
 els.lightboxClose = els.lbClose;
 els.lightboxCap = els.lbCaption;
 
 var LS = { theme: 'she.theme', last: 'she.last', width: 'she.sideWidth' };
-var MODES = { readme: { label: '说明', cls: 'readme' }, live: { label: '实时', cls: 'live' }, files: { label: '已载入', cls: 'files' } };
+var MODES = { welcome: { label: '欢迎', cls: 'mode-welcome' }, live: { label: '实时', cls: 'live' }, files: { label: '已载入', cls: 'files' } };
 
 var MD_EXT = { md: 1, markdown: 1, mdown: 1, mkd: 1, mkdn: 1, mdx: 1, mdtxt: 1, mdtext: 1 };
 var JSON_EXT = { json: 1, jsonc: 1, json5: 1, jsonl: 1, ndjson: 1 };
@@ -298,60 +298,59 @@ function activateRow(row, pin) {
 }
 function updateActiveRow(path) {
   $$('.tree-row.active', els.tree).forEach(function (r) { r.classList.remove('active'); });
-  if (!path) return;
+  if (!path || (S.current && S.current.readme)) return;
   var t = $$('.tree-row', els.tree).filter(function (r) { return r.dataset.type === 'file' && r.dataset.path === path; })[0];
   if (t) t.classList.add('active');
 }
 
 function updateModeStatus() {
-  var mode = MODES[S.mode] || MODES.readme;
-  els.statusMode.textContent = mode.label + ' · ' + (S.mode === 'readme' ? 0 : S.files.length) + ' 个文件';
+  var mode = MODES[S.mode] || MODES.welcome;
+  els.statusMode.textContent = mode.label + ' · ' + (S.mode === 'welcome' ? 0 : S.files.length) + ' 个文件';
   els.statusDot.className = 'status-dot ' + mode.cls;
   if (S.mode === 'live') els.statusDot.title = '已连接文件夹，内容实时读取';
   else if (S.mode === 'files') els.statusDot.title = '已载入文件夹或文件';
-  else if (S.mode === 'readme') els.statusDot.title = '内置说明页';
+  else if (S.mode === 'welcome') els.statusDot.title = '欢迎页，未打开文件夹';
   else els.statusDot.title = '未打开';
 }
 function updateSidebarMeta() {
-  var mode = MODES[S.mode] || MODES.readme;
+  var mode = MODES[S.mode] || MODES.welcome;
   els.rootName.textContent = S.rootName || '未打开';
   els.modePill.textContent = mode.label;
   els.modePill.className = 'mode-pill ' + mode.cls;
-  els.fileTotal.textContent = S.mode === 'readme' ? '内置说明' : S.files.length + ' 个文件';
-  els.welcomeSample.hidden = !S.files.length || S.mode === 'readme';
+  els.fileTotal.textContent = S.files.length + ' 个文件';
+  els.welcomeSample.hidden = !S.files.length || S.mode === 'welcome';
   if (S.mode === 'live') {
     els.sideHint.textContent = '实时读取 · 支持图片和相对链接';
     els.welcomeMeta.textContent = '已连接文件夹，包含 ' + S.files.length + ' 个文件';
   } else if (S.mode === 'files') {
     els.sideHint.textContent = '已载入 ' + S.files.length + ' 个文件';
     els.welcomeMeta.textContent = '已载入 ' + S.files.length + ' 个文件';
-  } else if (S.mode === 'readme') {
-    els.sideHint.textContent = '内置说明 · 打开文件夹开始浏览';
-    els.welcomeMeta.textContent = '打开文件夹或文件开始浏览';
   } else {
     els.sideHint.textContent = '拖入文件夹或文件';
-    els.welcomeMeta.textContent = '正在检查最近文件夹…';
+    els.welcomeMeta.textContent = '打开文件夹或文件开始浏览';
   }
   updateModeStatus();
 }
 function updateChrome() {
   var has = !!S.current;
   var k = S.currentKind;
+  var builtin = !!(S.current && S.current.readme);
   els.btnSource.disabled = !has || !hasSource(k) || S.editMode;
   els.btnSource.hidden = !has || !hasSource(k) || S.editMode;
   els.btnSource.classList.toggle('active', !!S.sourceMode);
   els.btnOutline.disabled = !has || !S.outline.length;
-  els.btnCopyPath.disabled = !has;
-  els.btnDownload.disabled = !has;
+  els.btnCopyPath.disabled = !has || builtin;
+  els.btnDownload.disabled = !has || builtin;
+  els.btnCopyPath.title = builtin ? '使用说明不可复制路径' : '复制路径';
+  els.btnDownload.title = builtin ? '使用说明不可下载' : '下载当前文件';
   els.btnPrev.disabled = !has;
   els.btnNext.disabled = !has;
   els.btnWrap.hidden = !has || !(S.editMode || k === 'text' || k === 'json' || k === 'csv');
   els.btnWrap.classList.toggle('active', S.wrap);
-  els.encoding.hidden = !has || !isTextKind(k) || S.mode === 'readme';
+  els.encoding.hidden = !has || !isTextKind(k) || builtin;
   els.encoding.disabled = !!S.editMode;
   els.encoding.value = S.encoding;
   if (els.btnEdit) {
-    var builtin = !!(S.current && S.current.readme);
     els.btnEdit.hidden = !has || !isTextKind(k) || builtin;
     els.btnEdit.disabled = !has || S.truncated || S.editSaving || builtin;
     els.btnEdit.classList.toggle('active', !!S.editMode && !builtin);
@@ -360,6 +359,10 @@ function updateChrome() {
 }
 function updateBreadcrumb() {
   els.crumbs.innerHTML = '';
+  if (S.current && S.current.readme) {
+    var help = document.createElement('span'); help.className = 'crumb file'; help.textContent = '使用说明'; help.title = '使用说明'; els.crumbs.appendChild(help);
+    return;
+  }
   if (!S.rootName) return;
   var root = document.createElement('span'); root.className = 'crumb root'; root.textContent = S.rootName; root.title = S.rootName; els.crumbs.appendChild(root);
   if (!S.current) return;
@@ -370,9 +373,11 @@ function updateBreadcrumb() {
 }
 function updateStatusPath() {
   var dirty = S.editDirty ? ' · 未保存' : '';
-  els.statusPath.textContent = S.current ? S.current.path + dirty : '未打开文件';
-  els.statusPath.title = S.current ? S.current.path : '';
-  document.title = S.current ? (S.editDirty ? '● ' : '') + S.current.name + ' · SingleHtmlEditor' : 'SingleHtmlEditor' + (S.rootName ? ' · ' + S.rootName : '');
+  var builtin = !!(S.current && S.current.readme);
+  var label = builtin ? '使用说明' : (S.current ? S.current.path : '');
+  els.statusPath.textContent = S.current ? label + dirty : '未打开文件';
+  els.statusPath.title = S.current ? label : '';
+  document.title = S.current ? (S.editDirty ? '● ' : '') + (builtin ? '使用说明' : S.current.name) + ' · SingleHtmlEditor' : 'SingleHtmlEditor' + (S.rootName ? ' · ' + S.rootName : '');
 }
 function updateStatusInfo(info) {
   els.statusInfo.textContent = info || '';
@@ -388,10 +393,11 @@ function updateStats(raw, custom) {
   els.statusStats.textContent = fmtNum(cjk + words) + ' 字 · ' + fmtNum(lines) + ' 行';
 }
 function showWelcome(message) {
+  if (!S.mode) S.mode = 'welcome';
   S.current = null; S.raw = ''; S.currentBlob = null; S.currentKind = ''; S.sourceMode = false; S.stats = null; S.outline = []; S.activeHeading = -1; S.mathFallbacks = 0;
   S.editMode = false; S.editDirty = false; S.editOriginal = ''; S.editText = ''; S.db = null; S.dbTable = '';
   S.activeTab = null;
-  renderOutline(); renderTabBar(); els.content.hidden = true; els.content.innerHTML = ''; els.welcome.hidden = false;
+  renderOutline(); renderTabBar(); renderRecentPanel(); els.content.hidden = true; els.content.innerHTML = ''; els.welcome.hidden = false;
   updateSidebarMeta(); updateBreadcrumb(); updateChrome(); updateStatusPath(); updateStatusInfo(''); updateStats(''); setProgress(0); updateActiveRow(null);
   els.scroll.scrollTop = 0;
   if (message) els.welcomeMeta.textContent = message;
@@ -578,7 +584,7 @@ function pickFiles() { closeSidebarMobile(); els.fileInput.value = ''; els.fileI
 function refreshTree() {
   if (S.mode === 'live' && S.rootHandle) { useDirectoryHandle(S.rootHandle); return; }
   if (S.mode === 'files') { toast('请重新选择文件夹或文件', 2200); pickFolder(); return; }
-  if (S.mode === 'readme') {
+  if (S.mode === 'welcome') {
     if (S.recentFolders && S.recentFolders.length) { restoreRecentFolder(0); return; }
     toast('还没有最近文件夹，请先打开一个文件夹', 2600);
     return;

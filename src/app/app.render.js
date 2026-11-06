@@ -281,15 +281,7 @@ function assetBlob(rawPath, basePath) {
   var key = S.mode + ':' + p;
   if (S.imageCache.has(key)) return S.imageCache.get(key);
   var promise = null;
-  if (S.mode === 'readme') {
-    var node = findFile(p) || findFile(raw);
-    if (!node) {
-      var bn = basename(p).toLowerCase();
-      var matches = S.files.filter(function (f) { return f.content != null && f.name.toLowerCase() === bn; });
-      if (matches.length === 1) node = matches[0];
-    }
-    if (node && node.content != null) promise = Promise.resolve(new Blob([node.content], { type: mimeOf(node.name) }));
-  } else if (S.mode === 'files') {
+  if (S.mode === 'files') {
     var f = null;
     if (S.fileMap) f = S.fileMap.get(p) || S.fileMapLower.get(p.toLowerCase());
     if (!f && S.fileMapByName) f = S.fileMapByName.get(basename(p).toLowerCase());
@@ -395,7 +387,6 @@ async function renderMarkdown(node, opts) {
   while (holder.firstChild) els.content.appendChild(holder.firstChild);
   if (!els.content.textContent.trim()) els.content.insertAdjacentHTML('beforeend', fallbackNote('空文档'));
   postProcessMarkdown(els.content);
-  if (node.readme) renderRecentPanel();
   await hydrateImages(els.content, dirname(node.path));
   hydrateLinks(els.content, dirname(node.path));
   updateStats(res.text);
@@ -754,8 +745,8 @@ async function loadFileIntoView(node, opts) {
     S.editMode = false; S.editDirty = false; S.editOriginal = ''; S.editText = ''; S.editSaving = false;
   }
   S.raw = ''; S.currentBlob = null; S.currentURL = ''; S.outline = []; S.outlineItems = []; S.activeHeading = -1; S.mathFallbacks = 0; S.fontFamily = '';
-  if (node.virtualParent) renderTree(); else revealPath(node.path, true);
-  updateActiveRow(node.virtualParent ? null : node.path);
+  if (node.virtualParent) renderTree(); else if (!node.readme) revealPath(node.path, true);
+  updateActiveRow(node.virtualParent || node.readme ? null : node.path);
   updateBreadcrumb(); updateStatusPath(); updateChrome();
   els.scroll.scrollTop = 0;
   setProgress(8);

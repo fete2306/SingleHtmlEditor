@@ -305,7 +305,7 @@ function recentRecords() {
   }).catch(function () { return []; });
 }
 function loadRecentFolders() {
-  return recentRecords().then(function (list) { S.recentFolders = list; return list; });
+  return recentRecords().then(function (list) { S.recentFolders = list; renderRecentPanel(); return list; });
 }
 function sameFolder(a, b) {
   if (!a || !b) return Promise.resolve(false);
@@ -334,6 +334,7 @@ function rememberFolder(handle) {
     });
   }).then(function (list) {
     S.recentFolders = list;
+    renderRecentPanel();
     return list;
   }).catch(function (err) {
     console.warn('无法保存最近文件夹', err);
@@ -374,19 +375,14 @@ function renderRecentPanel() {
   if (open) open.addEventListener('click', pickFolder);
 }
 function showReadme() {
-  if (!confirmDiscardTabs('打开使用说明')) return Promise.resolve(false);
   var text = S.readmeText ? S.readmeText : readReadmeText();
   S.readmeText = text;
   if (!String(text || '').trim()) {
-    showWelcome('未找到内置说明页，可直接打开文件夹或文件');
-    return Promise.resolve();
+    toast('未找到内置说明内容', 2600);
+    return Promise.resolve(false);
   }
   var node = { type: 'file', name: 'README.md', path: 'README.md', content: String(text), size: String(text).length, readme: true };
-  var root = { type: 'dir', name: '说明', path: '', children: [node] };
-  finalizeTree(root);
-  return Promise.resolve(activateTree(root, 'readme', { rootName: '说明', restoreLast: false })).then(function () {
-    renderRecentPanel();
-  });
+  return openFile(node, { pinned: true });
 }
 function restoreRecentFolder(arg) {
   var rec = null;
@@ -411,32 +407,30 @@ function restoreRecentFolder(arg) {
     return !!ok;
   }).catch(function (err) {
     if (err && err.name === 'AbortError') {
-      if (!S.files.length || S.mode === 'readme') showReadme();
+      if (!S.tabs.length) showWelcome();
       return false;
     }
     toast('无法恢复文件夹：' + (err && err.message ? err.message : err), 3600);
-    if (!S.tabs.length) showReadme();
+    if (!S.tabs.length) showWelcome('恢复失败，可从右侧最近文件夹重试或重新打开');
     return false;
   });
 }
 function initStartup() {
   S.readmeText = readReadmeText();
-  if (!String(S.readmeText || '').trim()) {
-    showWelcome('未找到内置说明页，可直接打开文件夹或文件');
-    return;
-  }
-  loadRecentFolders().then(function (list) {
+  S.mode = 'welcome';
+  renderRecentPanel();
+  return loadRecentFolders().then(function (list) {
     var latest = list[0];
-    if (!latest || !latest.handle || typeof latest.handle.queryPermission !== 'function') return showReadme();
+    if (!latest || !latest.handle || typeof latest.handle.queryPermission !== 'function') return showWelcome();
     return Promise.resolve(latest.handle.queryPermission({ mode: 'read' })).then(function (perm) {
-      if (perm !== 'granted') return showReadme();
+      if (perm !== 'granted') return showWelcome();
       return useDirectoryHandle(latest.handle).then(function (ok) {
-        if (!ok) return showReadme();
+        if (!ok) return showWelcome();
       });
     });
   }).catch(function (err) {
     console.warn('无法检查最近文件夹', err);
-    return showReadme();
+    return showWelcome();
   });
 }
 
@@ -516,6 +510,8 @@ function bind() {
     var md = S.files.filter(function (f) { return kindOf(f.name) === 'md'; })[0];
     openFile(md || S.files[0]);
   });
+  if (els.welcomeHelp) els.welcomeHelp.addEventListener('click', function () { showReadme(); });
+  if (els.welcomePalette) els.welcomePalette.addEventListener('click', openPalette);
   els.btnTheme.addEventListener('click', function () { applyTheme(S.theme === 'dark' ? 'light' : 'dark'); });
   els.btnExplorer.addEventListener('click', toggleSidebar);
   els.btnActivityPalette.addEventListener('click', openPalette);
