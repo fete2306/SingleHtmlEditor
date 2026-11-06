@@ -17,17 +17,29 @@ function focusTabById(id) {
   }
 }
 
-function ensureTab(node) {
-  var id = tabIdOf(node);
-  var tab = findTabById(id);
-  if (!tab) {
-    tab = { id: id, node: node, scrollTop: 0, zipCache: node.virtualParent ? S.zipCache : null };
-    S.tabs.push(tab);
-  } else {
-    if (node && tab.node !== node) tab.node = node;
-    if (node.virtualParent && S.zipCache) tab.zipCache = S.zipCache;
-  }
-  return tab;
+function makeTab(node, preview) {
+  return {
+    id: tabIdOf(node), node: node, preview: !!preview, scrollTop: 0,
+    zipCache: node.virtualParent ? S.zipCache : null
+  };
+}
+
+function updateTabNode(tab, node) {
+  tab.id = tabIdOf(node);
+  tab.node = node;
+  tab.zipCache = node.virtualParent ? S.zipCache : null;
+}
+
+function findPreviewTab() {
+  for (var i = 0; i < S.tabs.length; i++) if (S.tabs[i].preview) return S.tabs[i];
+  return null;
+}
+
+function pinTab(tab) {
+  if (!tab || !tab.preview) return false;
+  tab.preview = false;
+  renderTabBar();
+  return true;
 }
 
 function tabLabel(tab) {
@@ -40,7 +52,8 @@ function tabTitle(tab) {
   var node = tab && tab.node;
   if (!node) return '';
   if (node.readme) return '使用说明';
-  return node.path || node.name || '';
+  var title = node.path || node.name || '';
+  return tab.preview ? '预览 · ' + title : title;
 }
 
 function saveActiveTabScroll() {
@@ -70,7 +83,7 @@ function renderTabBar() {
     var node = tab.node;
     var kind = kindOf(node.name);
     var el = document.createElement('div');
-    el.className = 'tab' + (tab === S.activeTab ? ' active' : '');
+    el.className = 'tab' + (tab === S.activeTab ? ' active' : '') + (tab.preview ? ' preview' : '');
     el.setAttribute('data-tab-id', tab.id);
     el.setAttribute('role', 'tab');
     el.setAttribute('aria-selected', tab === S.activeTab ? 'true' : 'false');
@@ -86,7 +99,7 @@ function renderTabBar() {
 
 function canSwitchTab(targetTab, opts) {
   if (!S.editMode || !S.editDirty || !S.current) return true;
-  if (opts && opts.force) return true;
+  if (opts && (opts.force || opts.checked)) return true;
   if (targetTab && targetTab.node === S.current) return true;
   return window.confirm('当前文件有未保存的修改，切换标签会丢失。继续吗？');
 }
@@ -129,7 +142,34 @@ function openFile(node, opts) {
     renderTabBar();
     return Promise.resolve(loadFileIntoView(node, opts));
   }
-  return activateTab(ensureTab(node), opts);
+  var existing = findTabById(tabIdOf(node));
+  if (existing) {
+    if (opts.pinned) pinTab(existing);
+    if (existing.node !== node) updateTabNode(existing, node);
+    else if (node.virtualParent && S.zipCache) existing.zipCache = S.zipCache;
+    return activateTab(existing, opts);
+  }
+  var pinned = !!opts.pinned;
+  var previewTab = pinned ? null : findPreviewTab();
+  if (previewTab) {
+    if (previewTab !== S.activeTab && !canSwitchTab(previewTab, opts)) return Promise.resolve(false);
+    var wasActive = previewTab === S.activeTab;
+    opts.checked = true;
+    updateTabNode(previewTab, node);
+    previewTab.preview = true;
+    previewTab.scrollTop = 0;
+    if (wasActive) opts.force = true;
+    return activateTab(previewTab, opts);
+  }
+  var tab = makeTab(node, !pinned);
+  if (!pinned) {
+    S.tabs.push(tab);
+  } else {
+    var at = -1;
+    for (var i = 0; i < S.tabs.length; i++) if (S.tabs[i].preview) { at = i; break; }
+    if (at >= 0) S.tabs.splice(at, 0, tab); else S.tabs.push(tab);
+  }
+  return activateTab(tab, opts);
 }
 
 function closeTab(tab, opts) {

@@ -73,6 +73,7 @@ function enterEdit() {
   if (S.current.readme) { toast('内置说明页不可编辑', 2200); return; }
   if (!isTextKind(S.currentKind)) { toast('这个文件类型不支持文本编辑', 2200); return; }
   if (S.truncated) { toast('文件已截断，请先点“加载全部”再编辑', 3200); return; }
+  pinTab(S.activeTab);
   S.editMode = true;
   S.editOriginal = S.raw;
   S.editText = S.raw;

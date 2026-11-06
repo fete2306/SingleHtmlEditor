@@ -116,12 +116,12 @@ function renderPalette() {
     els.paletteList.appendChild(row);
   });
 }
-function choosePaletteItem(index) {
+function choosePaletteItem(index, pin) {
   var match = S.paletteMatches[index];
   if (!match) return;
   closePalette();
   revealPath(match.node.path, true);
-  openFile(match.node);
+  openFile(match.node, pin ? { pinned: true } : undefined);
 }
 
 function handleScroll() {
@@ -634,6 +634,10 @@ function bind() {
     var row = event.target.closest ? event.target.closest('.tree-row') : null;
     if (row) activateRow(row);
   });
+  els.tree.addEventListener('dblclick', function (event) {
+    var row = event.target.closest ? event.target.closest('.tree-row') : null;
+    if (row && row.dataset.type === 'file') activateRow(row, true);
+  });
   els.tree.addEventListener('keydown', function (event) {
     var row = event.target.closest ? event.target.closest('.tree-row') : null;
     if (!row) return;
@@ -671,7 +675,7 @@ function bind() {
       setPaletteActive(S.paletteIndex - 1);
     } else if (event.key === 'Enter') {
       event.preventDefault();
-      choosePaletteItem(S.paletteIndex);
+      choosePaletteItem(S.paletteIndex, event.ctrlKey || event.metaKey);
     }
   });
   els.lightbox.addEventListener('click', function (event) {

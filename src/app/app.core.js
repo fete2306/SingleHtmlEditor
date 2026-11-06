@@ -290,11 +290,11 @@ function toggleDir(path) {
   var row = $$('.tree-row', els.tree).filter(function (r) { return r.dataset.path === path; })[0];
   if (row) row.focus();
 }
-function activateRow(row) {
+function activateRow(row, pin) {
   if (!row) return;
   if (row.dataset.type === 'dir') { toggleDir(row.dataset.path); return; }
   var node = findFile(row.dataset.path);
-  if (node) openFile(node);
+  if (node) openFile(node, pin ? { pinned: true } : undefined);
 }
 function updateActiveRow(path) {
   $$('.tree-row.active', els.tree).forEach(function (r) { r.classList.remove('active'); });
@@ -417,11 +417,14 @@ function activateTree(root, mode, opts) {
   }
   els.filter.value = ''; els.filterBox.classList.remove('has-value'); S.filter = '';
   updateSidebarMeta(); updateChrome(); renderTree();
-  var target = null;
+  var target = null, restored = false;
   if (opts.preferPath) target = findFile(opts.preferPath);
-  if (!target && opts.restoreLast !== false) target = findFile(storeGet(LS.last));
+  if (!target && opts.restoreLast !== false) {
+    target = findFile(storeGet(LS.last));
+    restored = !!target;
+  }
   if (!target) target = S.files[0] || null;
-  if (target) { revealPath(target.path, false); renderTree(); return openFile(target, { anchor: opts.anchor || '' }); }
+  if (target) { revealPath(target.path, false); renderTree(); return openFile(target, { anchor: opts.anchor || '', pinned: restored }); }
   showWelcome('没有找到可显示的文件');
   return Promise.resolve();
 }
