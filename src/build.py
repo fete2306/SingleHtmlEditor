@@ -30,6 +30,7 @@ script = "\n".join(
         "app.highlight.js",
         "app.db.js",
         "app.render.js",
+        "app.tabs.js",
         "app.edit.js",
         "app.bind.js",
     )

@@ -21,11 +21,12 @@ var S = {
   truncated: false, fullMode: false, encoding: 'auto', decodedEncoding: '', mathFallbacks: 0, stats: null,
   wrap: false, scanLimited: false, scanCount: 0, fontFamily: '', preloadBytes: 0,
   currentURL: '', progressTimer: 0, xlsx: null, rawDeflate: false, db: null, dbTable: '',
-  editMode: false, editDirty: false, editOriginal: '', editText: '', editSaving: false
+  editMode: false, editDirty: false, editOriginal: '', editText: '', editSaving: false,
+  tabs: [], activeTab: null
 };
 
 var els = {};
-['sidebar','tree','filter','filterBox','filterClear','rootName','modePill','fileTotal','sideHint','content','welcome','welcomeMeta','welcomeSample','welcomeOpen','welcomeFiles','scroll','crumbs','main','outline','outlineList','progressBar','statusMode','statusPath','statusInfo','statusStats','statusDot','palette','paletteInput','paletteList','lightbox','lightboxImg','lbCaption','lbClose','toast','dropOverlay','fileInput','folderInput','btnTheme','btnSource','btnOutline','btnCopyPath','btnPalette','btnOpenDir','btnOpenFiles','btnOpenDir2','btnOpenFiles2','btnRefresh','btnCollapse','btnMenu','btnOutlineClose','backdrop','resizer','btnPrev','btnNext','btnDownload','btnWrap','encoding','btnEdit'].forEach(function (id) { els[id] = document.getElementById(id); });
+['sidebar','tree','filter','filterBox','filterClear','rootName','modePill','fileTotal','sideHint','content','welcome','welcomeMeta','welcomeSample','welcomeOpen','welcomeFiles','scroll','crumbs','main','outline','outlineList','progressBar','statusMode','statusPath','statusInfo','statusStats','statusDot','palette','paletteInput','paletteList','lightbox','lightboxImg','lbCaption','lbClose','toast','dropOverlay','fileInput','folderInput','btnTheme','btnSource','btnOutline','btnCopyPath','btnPalette','btnOpenDir','btnOpenFiles','btnOpenDir2','btnOpenFiles2','btnRefresh','btnCollapse','btnMenu','btnOutlineClose','backdrop','resizer','btnPrev','btnNext','btnDownload','btnWrap','encoding','btnEdit','tabbar','tabstrip'].forEach(function (id) { els[id] = document.getElementById(id); });
 els.lightboxClose = els.lbClose;
 els.lightboxCap = els.lbCaption;
 
@@ -389,7 +390,8 @@ function updateStats(raw, custom) {
 function showWelcome(message) {
   S.current = null; S.raw = ''; S.currentBlob = null; S.currentKind = ''; S.sourceMode = false; S.stats = null; S.outline = []; S.activeHeading = -1; S.mathFallbacks = 0;
   S.editMode = false; S.editDirty = false; S.editOriginal = ''; S.editText = ''; S.db = null; S.dbTable = '';
-  renderOutline(); els.content.hidden = true; els.content.innerHTML = ''; els.welcome.hidden = false;
+  S.activeTab = null;
+  renderOutline(); renderTabBar(); els.content.hidden = true; els.content.innerHTML = ''; els.welcome.hidden = false;
   updateSidebarMeta(); updateBreadcrumb(); updateChrome(); updateStatusPath(); updateStatusInfo(''); updateStats(''); setProgress(0); updateActiveRow(null);
   els.scroll.scrollTop = 0;
   if (message) els.welcomeMeta.textContent = message;
@@ -398,7 +400,7 @@ function showWelcome(message) {
 function activateTree(root, mode, opts) {
   opts = opts || {};
   resetURLs();
-  S.mode = mode; S.rootName = opts.rootName || root.name || '工作区'; S.root = root; S.files = [];
+  S.mode = mode; S.rootName = opts.rootName || root.name || '工作区'; S.root = root; S.files = []; S.tabs = []; S.activeTab = null;
   S.fileByPath = new Map(); S.fileByPathLower = new Map(); S.dirByPath = new Map(); S.expanded = new Set();
   S.current = null; S.raw = ''; S.currentBlob = null; S.currentKind = ''; S.sourceMode = false; S.stats = null;
   S.outline = []; S.outlineItems = []; S.activeHeading = -1; S.mathFallbacks = 0; S.truncated = false; S.fullMode = false; S.wrap = false; S.filter = '';

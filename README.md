@@ -10,6 +10,7 @@ SingleHtmlEditor 是一个可直接双击打开、完全离线运行的单文件
 - 本地优先：文件读取、预览、编辑和保存都在浏览器内完成，不上传服务器。
 - 完全离线：CSS、JavaScript、Markdown 渲染、安全净化等资源全部内置，无外部 CDN 依赖。
 - 目录浏览：支持打开文件夹、选择多个文件、拖入文件或文件夹、目录树过滤、面包屑和上一文件/下一文件。
+- 多文件标签：顶部标签栏可同时打开多个文件，支持切换、关闭，关闭最后一个文件后回到欢迎页。
 - 多格式预览：覆盖常见文档、代码、表格、图片、媒体、压缩包和数据库文件。
 - 轻量编辑：文本类文件可进入编辑模式，支持语法高亮、`Ctrl+S` 保存和未保存提示。
 - 快速导航：`Ctrl+P` 模糊快速打开，Markdown/Notebook 支持大纲，图片支持灯箱查看。
@@ -102,6 +103,7 @@ SingleHtmlEditor.html
 │  │  ├─ .resizer：侧栏宽度拖拽条
 │  │  ├─ .main
 │  │  │  ├─ .topbar：面包屑与工具栏
+│  │  │  ├─ .tabbar：打开文件后显示的标签栏
 │  │  │  └─ .workspace
 │  │  │     ├─ .content-scroll
 │  │  │     │  ├─ #content：文档/媒体渲染区
@@ -127,10 +129,10 @@ SingleHtmlEditor.html
 
 ### 运行时结构
 
-- `S`：集中保存当前模式、目录树、文件索引、当前文件、渲染状态、编辑状态、最近目录和缓存。
+- `S`：集中保存当前模式、目录树、文件索引、当前文件、标签页、渲染状态、编辑状态、最近目录和缓存。
 - `els`：启动时缓存主要 DOM 节点，避免重复查询。
 - 文件抽象：统一处理目录句柄、`File`、`Blob`、压缩包虚拟条目和内置 README。
-- 渲染管线：`openFile()` 读取内容后按扩展名分发到 `renderMarkdown`、`renderJson`、`renderCsv`、`renderHtml`、`renderSqlite`、`renderPdf` 等渲染器。
+- 标签管线：`openFile()` 维护标签列表，`activateTab()` 切换活动文件，`loadFileIntoView()` 读取内容后按扩展名分发到 `renderMarkdown`、`renderJson`、`renderCsv`、`renderHtml`、`renderSqlite`、`renderPdf` 等渲染器。
 - 编辑管线：`enterEdit()` 进入编辑器，`saveEdit()` 在文件夹实时模式下写入句柄，否则下载副本；`cancelEdit()` 恢复原文。
 - 安全边界：HTML 和 EPUB 内容先经 DOMPurify 净化；HTML 预览运行在禁用脚本的 sandbox iframe 中。
 
@@ -154,6 +156,7 @@ src/
 │  ├─ app.highlight.js
 │  ├─ app.db.js
 │  ├─ app.render.js
+│  ├─ app.tabs.js
 │  ├─ app.edit.js
 │  └─ app.bind.js
 └─ vendor/
@@ -236,7 +239,7 @@ python src\build.py path\to\SingleHtmlEditor.html
 
 ## 已知限制
 
-- 当前版本是单文档阅读界面，尚未实现多标签页和可固定标签。
+- 标签页已支持基础切换和关闭；预览标签、固定标签和跨刷新恢复尚未实现。
 - Office、EPUB 和 PDF 只提供基础预览，复杂版式、字体、宏、加密或 DRM 内容可能无法正确显示。
 - SQLite 为只读浏览，不提供 SQL 查询编辑器。
 - 超大文本默认截断，超大目录、压缩包和数据库受上表限制。
@@ -256,8 +259,8 @@ python src\build.py path\to\SingleHtmlEditor.html
 
 ```text
 文件：SingleHtmlEditor.html
-大小：138,654 字节
-SHA-256：b1a88b8baad2781bd0d95d004a7d60caab5a15094991cfc7ad0763fe1e8b104f
+大小：141,294 字节
+SHA-256：f5917aef3c5be04c785d29760e1ae3543d9fae07959518c681a0920836392418
 ```
 
 重新构建后可用上面的 SHA-256 校验生成结果是否一致。

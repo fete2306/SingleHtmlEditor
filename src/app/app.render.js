@@ -732,12 +732,9 @@ async function renderAuto(node) {
   S.currentKind = 'text';
   await renderText(node);
 }
-async function openFile(node, opts) {
+async function loadFileIntoView(node, opts) {
   opts = opts || {};
   if (!node) return;
-  if (S.editMode && S.editDirty && S.current && S.current !== node && !opts.force) {
-    if (!window.confirm('当前文件有未保存的修改，仍要打开其他文件吗？')) return;
-  }
   var token = ++S.openToken;
   var keep = !!opts.keepState;
   var parentZip = node.virtualParent ? S.zipCache : null;
