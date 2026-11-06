@@ -261,3 +261,10 @@ SHA-256：b1a88b8baad2781bd0d95d004a7d60caab5a15094991cfc7ad0763fe1e8b104f
 ```
 
 重新构建后可用上面的 SHA-256 校验生成结果是否一致。
+
+## 许可证
+
+本项目采用 MIT License，详见 [LICENSE](LICENSE)。
+
+第三方组件仍适用各自许可证，见“第三方组件”。
+
