@@ -41,6 +41,16 @@
 </svg>
 
 <div class="app">
+<nav class="activitybar" id="activitybar" aria-label="活动栏">
+<div class="activity-top">
+<button class="activity-btn active" id="btnExplorer" title="资源管理器" aria-label="资源管理器" aria-controls="sidebar" aria-pressed="true"><svg class="i" aria-hidden="true"><use href="#i-folder-open"></use></svg></button>
+<button class="activity-btn" id="btnActivityPalette" title="快速打开 (Ctrl+P)" aria-label="快速打开"><svg class="i" aria-hidden="true"><use href="#i-search"></use></svg></button>
+</div>
+<div class="activity-bottom">
+<button class="activity-btn" id="btnActivityHelp" title="使用说明" aria-label="使用说明"><svg class="i" aria-hidden="true"><use href="#i-book"></use></svg></button>
+<button class="activity-btn" id="btnActivityTheme" title="切换主题" aria-label="切换主题"><svg class="i" aria-hidden="true"><use href="#i-sun"></use></svg></button>
+</div>
+</nav>
 <aside class="sidebar" id="sidebar">
 <header class="side-head">
 <span class="side-title">资源管理器</span>

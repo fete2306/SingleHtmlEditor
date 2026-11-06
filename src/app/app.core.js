@@ -26,7 +26,7 @@ var S = {
 };
 
 var els = {};
-['sidebar','tree','filter','filterBox','filterClear','rootName','modePill','fileTotal','sideHint','content','welcome','welcomeMeta','welcomeSample','welcomeOpen','welcomeFiles','scroll','crumbs','main','outline','outlineList','progressBar','statusMode','statusPath','statusInfo','statusStats','statusDot','palette','paletteInput','paletteList','lightbox','lightboxImg','lbCaption','lbClose','toast','dropOverlay','fileInput','folderInput','btnTheme','btnSource','btnOutline','btnCopyPath','btnPalette','btnOpenDir','btnOpenFiles','btnOpenDir2','btnOpenFiles2','btnRefresh','btnCollapse','btnMenu','btnOutlineClose','backdrop','resizer','btnPrev','btnNext','btnDownload','btnWrap','encoding','btnEdit','tabbar','tabstrip'].forEach(function (id) { els[id] = document.getElementById(id); });
+['sidebar','tree','filter','filterBox','filterClear','rootName','modePill','fileTotal','sideHint','content','welcome','welcomeMeta','welcomeSample','welcomeOpen','welcomeFiles','scroll','crumbs','main','outline','outlineList','progressBar','statusMode','statusPath','statusInfo','statusStats','statusDot','palette','paletteInput','paletteList','lightbox','lightboxImg','lbCaption','lbClose','toast','dropOverlay','fileInput','folderInput','activitybar','btnExplorer','btnActivityPalette','btnActivityHelp','btnActivityTheme','btnTheme','btnSource','btnOutline','btnCopyPath','btnPalette','btnOpenDir','btnOpenFiles','btnOpenDir2','btnOpenFiles2','btnRefresh','btnCollapse','btnMenu','btnOutlineClose','backdrop','resizer','btnPrev','btnNext','btnDownload','btnWrap','encoding','btnEdit','tabbar','tabstrip'].forEach(function (id) { els[id] = document.getElementById(id); });
 els.lightboxClose = els.lbClose;
 els.lightboxCap = els.lbCaption;
 
@@ -593,20 +593,31 @@ function toggleCollapse() {
   else S.dirByPath.forEach(function (d) { if (d.path) S.expanded.add(d.path); });
   renderTree();
 }
-function closeSidebarMobile() { document.body.classList.remove('sidebar-open'); }
+function syncActivityState() {
+  if (!els.btnExplorer) return;
+  var open = window.innerWidth <= 820
+    ? document.body.classList.contains('sidebar-open')
+    : !document.body.classList.contains('sidebar-collapsed');
+  els.btnExplorer.classList.toggle('active', open);
+  els.btnExplorer.setAttribute('aria-pressed', open ? 'true' : 'false');
+  els.btnExplorer.title = open ? '隐藏资源管理器' : '显示资源管理器';
+}
+function closeSidebarMobile() { document.body.classList.remove('sidebar-open'); syncActivityState(); }
 function toggleSidebar() {
   if (window.innerWidth <= 820) document.body.classList.toggle('sidebar-open');
   else document.body.classList.toggle('sidebar-collapsed');
+  syncActivityState();
 }
 function applyTheme(theme) {
   S.theme = theme === 'light' ? 'light' : 'dark';
   document.documentElement.dataset.theme = S.theme;
   storeSet(LS.theme, S.theme);
-  if (els.btnTheme) {
-    var use = els.btnTheme.querySelector('use');
+  [els.btnTheme, els.btnActivityTheme].forEach(function (btn) {
+    if (!btn) return;
+    var use = btn.querySelector('use');
     if (use) use.setAttribute('href', S.theme === 'dark' ? '#i-sun' : '#i-moon');
-    els.btnTheme.title = S.theme === 'dark' ? '切换到浅色主题' : '切换到深色主题';
-  }
+    btn.title = S.theme === 'dark' ? '切换到浅色主题' : '切换到深色主题';
+  });
 }
 
 function getBlob(node) {

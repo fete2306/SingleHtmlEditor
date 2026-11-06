@@ -517,6 +517,10 @@ function bind() {
     openFile(md || S.files[0]);
   });
   els.btnTheme.addEventListener('click', function () { applyTheme(S.theme === 'dark' ? 'light' : 'dark'); });
+  els.btnExplorer.addEventListener('click', toggleSidebar);
+  els.btnActivityPalette.addEventListener('click', openPalette);
+  els.btnActivityHelp.addEventListener('click', function () { showReadme(); });
+  els.btnActivityTheme.addEventListener('click', function () { applyTheme(S.theme === 'dark' ? 'light' : 'dark'); });
   els.btnRefresh.addEventListener('click', refreshTree);
   els.btnCollapse.addEventListener('click', toggleCollapse);
   els.btnSource.addEventListener('click', toggleSource);
@@ -730,8 +734,10 @@ function bind() {
   window.addEventListener('beforeunload', function (event) {
     if (hasDirtyTabs()) { event.preventDefault(); event.returnValue = ''; }
   });
+  window.addEventListener('resize', syncActivityState);
   bindResizer();
   bindDragDrop();
+  syncActivityState();
 }
 
 function init() {
