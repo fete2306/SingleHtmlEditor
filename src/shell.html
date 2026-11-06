@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SingleHtmlEditor</title>
+<script>
+(function(){try{var t=localStorage.getItem('she.theme');if(!t)t=window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches?'light':'dark';document.documentElement.dataset.theme=t;}catch(e){document.documentElement.dataset.theme='dark';}})();
+</script>
+<style>/*CSS*/</style>
+</head>
+<body>
+<svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="position:absolute;width:0;height:0;overflow:hidden">
+<symbol id="i-chevron" viewBox="0 0 16 16"><path d="M6 3.5 10.5 8 6 12.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+<symbol id="i-file" viewBox="0 0 16 16"><g fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2.3h5.1L12.7 6v7.7H4z"/><path d="M9 2.4V6h3.6"/><path d="M6.1 9.2h4M6.1 11.5h2.8"/></g></symbol>
+<symbol id="i-folder" viewBox="0 0 16 16"><path d="M2 4.7c0-.9.7-1.6 1.6-1.6h2.5c.5 0 .9.2 1.2.6l.9 1.1h4.2c.9 0 1.6.7 1.6 1.6v5c0 .9-.7 1.6-1.6 1.6H3.6A1.6 1.6 0 0 1 2 11.4z" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></symbol>
+<symbol id="i-folder-open" viewBox="0 0 16 16"><g fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M2 11.4V4.7c0-.9.7-1.6 1.6-1.6h2.5c.5 0 .9.2 1.2.6l.9 1.1h4.2c.9 0 1.6.7 1.6 1.6v.6"/><path d="M2.2 12.8 3.6 8c.15-.5.6-.85 1.12-.85h8.6c.75 0 1.28.72 1.05 1.43l-1 3.02c-.2.62-.78 1.05-1.44 1.05H3.4c-.9 0-1.5-.84-1.2-1.68z"/></g></symbol>
+<symbol id="i-search" viewBox="0 0 16 16"><g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="7" cy="7" r="4.2"/><path d="m10.2 10.2 3.2 3.2"/></g></symbol>
+<symbol id="i-x" viewBox="0 0 16 16"><path d="m4.5 4.5 7 7m0-7-7 7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
+<symbol id="i-refresh" viewBox="0 0 16 16"><g fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M13.2 7.2A5.2 5.2 0 1 1 11.6 4"/><path d="M13.2 2.8v4.4H8.8"/></g></symbol>
+<symbol id="i-collapse" viewBox="0 0 16 16"><g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3.2 8 6.2l3-3M5 12.8l3-3 3 3"/></g></symbol>
+<symbol id="i-sun" viewBox="0 0 16 16"><g fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><circle cx="8" cy="8" r="3"/><path d="M8 1.5v1.4M8 13.1v1.4M1.5 8h1.4M13.1 8h1.4M3.4 3.4l1 1M11.6 11.6l1 1M12.6 3.4l-1 1M4.4 11.6l-1 1"/></g></symbol>
+<symbol id="i-moon" viewBox="0 0 16 16"><path d="M13.2 9.6A5.7 5.7 0 0 1 6.4 2.8 5.6 5.6 0 1 0 13.2 9.6z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></symbol>
+<symbol id="i-list" viewBox="0 0 16 16"><g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M5.5 4h8M5.5 8h8M5.5 12h8"/><circle cx="2.6" cy="4" r="0.7" fill="currentColor" stroke="none"/><circle cx="2.6" cy="8" r="0.7" fill="currentColor" stroke="none"/><circle cx="2.6" cy="12" r="0.7" fill="currentColor" stroke="none"/></g></symbol>
+<symbol id="i-code" viewBox="0 0 16 16"><path d="m5.4 4.8-3.3 3.2 3.3 3.2M10.6 4.8l3.3 3.2-3.3 3.2" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+<symbol id="i-copy" viewBox="0 0 16 16"><g fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"><rect x="5.2" y="5.2" width="7.6" height="7.6" rx="1.3"/><path d="M10.8 5.1V4.2c0-.7-.6-1.3-1.3-1.3H4.2c-.7 0-1.3.6-1.3 1.3v5.3c0 .7.6 1.3 1.3 1.3h.9"/></g></symbol>
+<symbol id="i-menu" viewBox="0 0 16 16"><path d="M2.6 4.2h10.8M2.6 8h10.8M2.6 11.8h10.8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></symbol>
+<symbol id="i-image" viewBox="0 0 16 16"><g fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"><rect x="2.2" y="3" width="11.6" height="10" rx="1.4"/><circle cx="5.7" cy="6.3" r="1.1"/><path d="m3.2 11.6 3.1-3 2.2 2.1 1.6-1.5 2.7 2.4"/></g></symbol>
+<symbol id="i-book" viewBox="0 0 16 16"><g fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3.6C6.9 2.7 5.4 2.5 2.5 2.6v9.2c2.9-.1 4.4.1 5.5 1 1.1-.9 2.6-1.1 5.5-1V2.6c-2.9-.1-4.4.1-5.5 1z"/><path d="M8 3.6v9.2"/></g></symbol>
+<symbol id="i-audio" viewBox="0 0 16 16"><g fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 12.5V4.2l7-1.4v8.4"/><circle cx="4.2" cy="12.4" r="1.8"/><circle cx="11.2" cy="11.2" r="1.8"/></g></symbol>
+<symbol id="i-video" viewBox="0 0 16 16"><g fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"><rect x="2" y="3.4" width="12" height="9.2" rx="1.4"/><path d="m6.6 6 3.2 2-3.2 2z"/></g></symbol>
+<symbol id="i-pdf" viewBox="0 0 16 16"><g fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"><path d="M4 2.3h5.1L12.7 6v7.7H4z"/><path d="M9 2.4V6h3.6"/><path d="M5.8 11.5V8.7h1.1c.6 0 1 .4 1 .9s-.4.9-1 .9H5.8M9.2 8.7v2.8M9.2 8.7h1.5M9.2 10.2h1.3"/></g></symbol>
+<symbol id="i-archive" viewBox="0 0 16 16"><g fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"><rect x="2.3" y="3" width="11.4" height="10" rx="1.3"/><path d="M2.3 6h11.4M8 6v3.2M6.8 9.2h2.4"/></g></symbol>
+<symbol id="i-font" viewBox="0 0 16 16"><path d="M3 13 7.2 3h1.6L13 13M4.8 9.2h6.4" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+<symbol id="i-table" viewBox="0 0 16 16"><g fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"><rect x="2.2" y="3" width="11.6" height="10" rx="1"/><path d="M2.2 6.4h11.6M6.2 6.4V13M9.8 6.4V13"/></g></symbol>
+<symbol id="i-download" viewBox="0 0 16 16"><g fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2.5v7.2M5.2 7.2 8 10l2.8-2.8M3 12.8h10"/></g></symbol>
+<symbol id="i-prev" viewBox="0 0 16 16"><path d="m9.5 4-4 4 4 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+<symbol id="i-next" viewBox="0 0 16 16"><path d="m6.5 4 4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+<symbol id="i-wrap" viewBox="0 0 16 16"><g fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 4h11M2.5 8h8.2a2 2 0 0 1 0 4H8.3"/><path d="m9.8 10.2-1.5 1.8 1.5 1.8M2.5 12h3"/></g></symbol>
+<symbol id="i-edit" viewBox="0 0 16 16"><g fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="m3.1 12.9.5-2.6 7.1-7.1a1.3 1.3 0 0 1 1.8 0l.3.3a1.3 1.3 0 0 1 0 1.8l-7.1 7.1zM9.9 4l2.1 2.1"/></g></symbol>
+</svg>
+
+<div class="app">
+<aside class="sidebar" id="sidebar">
+<header class="side-head">
+<span class="side-title">资源管理器</span>
+<div class="side-actions">
+<button class="icon-btn" id="btnOpenDir" title="打开文件夹" aria-label="打开文件夹"><svg class="i" aria-hidden="true"><use href="#i-folder-open"></use></svg></button>
+<button class="icon-btn" id="btnOpenFiles" title="打开文件" aria-label="打开文件"><svg class="i" aria-hidden="true"><use href="#i-file"></use></svg></button>
+<button class="icon-btn" id="btnRefresh" title="重新扫描" aria-label="重新扫描"><svg class="i" aria-hidden="true"><use href="#i-refresh"></use></svg></button>
+<button class="icon-btn" id="btnCollapse" title="折叠 / 展开全部" aria-label="折叠或展开全部"><svg class="i" aria-hidden="true"><use href="#i-collapse"></use></svg></button>
+</div>
+</header>
+<div class="side-sub">
+<span class="root-name" id="rootName">未打开</span>
+<span class="mode-pill readme" id="modePill">说明</span>
+<span class="file-total" id="fileTotal">0 个文件</span>
+</div>
+<div class="filter-box" id="filterBox">
+<svg class="i" aria-hidden="true"><use href="#i-search"></use></svg>
+<input id="filter" type="text" placeholder="搜索文件" autocomplete="off" spellcheck="false">
+<button class="filter-clear" id="filterClear" type="button" title="清除筛选" aria-label="清除筛选"><svg class="i" aria-hidden="true"><use href="#i-x"></use></svg></button>
+</div>
+<nav class="tree" id="tree" role="tree" aria-label="文件"></nav>
+<footer class="side-foot">
+<button class="open-btn" id="btnOpenDir2" type="button"><svg class="i" aria-hidden="true"><use href="#i-folder-open"></use></svg><span>打开文件夹</span></button>
+<button class="open-btn subtle" id="btnOpenFiles2" type="button"><svg class="i" aria-hidden="true"><use href="#i-file"></use></svg><span>打开文件</span></button>
+<div class="side-hint" id="sideHint">拖入文件夹或文件</div>
+</footer>
+</aside>
+
+<div class="resizer" id="resizer" title="拖动调整宽度"></div>
+
+<main class="main" id="main">
+<div class="progress"><div class="progress-bar" id="progressBar"></div></div>
+<header class="topbar">
+<button class="icon-btn mobile-only" id="btnMenu" title="切换侧栏" aria-label="切换侧栏"><svg class="i" aria-hidden="true"><use href="#i-menu"></use></svg></button>
+<nav class="crumbs" id="crumbs" aria-label="路径"></nav>
+<div class="top-actions">
+<button class="icon-btn" id="btnPrev" title="上一个文件 (Alt+←)" aria-label="上一个文件"><svg class="i" aria-hidden="true"><use href="#i-prev"></use></svg></button>
+<button class="icon-btn" id="btnNext" title="下一个文件 (Alt+→)" aria-label="下一个文件"><svg class="i" aria-hidden="true"><use href="#i-next"></use></svg></button>
+<select class="enc-select" id="encoding" title="文本编码" aria-label="文本编码" hidden>
+<option value="auto">自动编码</option>
+<option value="utf-8">UTF-8</option>
+<option value="utf-16le">UTF-16 LE</option>
+<option value="utf-16be">UTF-16 BE</option>
+<option value="gb18030">GB18030</option>
+<option value="big5">Big5</option>
+<option value="shift_jis">Shift_JIS</option>
+<option value="windows-1252">Windows-1252</option>
+</select>
+<button class="icon-btn" id="btnWrap" title="自动换行" aria-label="自动换行" hidden><svg class="i" aria-hidden="true"><use href="#i-wrap"></use></svg></button>
+<button class="icon-btn" id="btnSource" title="源码 (Ctrl+E)" aria-label="源码"><svg class="i" aria-hidden="true"><use href="#i-code"></use></svg></button>
+<button class="icon-btn" id="btnEdit" title="编辑文本" aria-label="编辑文本" hidden><svg class="i" aria-hidden="true"><use href="#i-edit"></use></svg></button>
+<button class="icon-btn" id="btnOutline" title="大纲" aria-label="大纲"><svg class="i" aria-hidden="true"><use href="#i-list"></use></svg></button>
+<button class="icon-btn" id="btnDownload" title="下载当前文件" aria-label="下载"><svg class="i" aria-hidden="true"><use href="#i-download"></use></svg></button>
+<button class="icon-btn" id="btnCopyPath" title="复制路径" aria-label="复制路径"><svg class="i" aria-hidden="true"><use href="#i-copy"></use></svg></button>
+<button class="icon-btn" id="btnPalette" title="快速打开 (Ctrl+P)" aria-label="快速打开"><svg class="i" aria-hidden="true"><use href="#i-search"></use></svg></button>
+<span class="sep"></span>
+<button class="icon-btn" id="btnTheme" title="切换主题" aria-label="切换主题"><svg class="i" aria-hidden="true"><use href="#i-sun"></use></svg></button>
+</div>
+</header>
+
+<div class="workspace">
+<div class="content-scroll" id="scroll">
+<article class="doc markdown-body" id="content" hidden></article>
+<section class="welcome" id="welcome">
+<div class="welcome-badge"><svg class="i" aria-hidden="true"><use href="#i-book"></use></svg></div>
+<h1>SingleHtmlEditor</h1>
+<p class="welcome-sub">Markdown、代码、图片、音视频、PDF、Office、EPUB<br>一个 HTML 打开尽可能多的文件</p>
+<div class="welcome-actions">
+<button class="btn primary" id="welcomeOpen" type="button"><svg class="i" aria-hidden="true"><use href="#i-folder-open"></use></svg>打开文件夹</button>
+<button class="btn" id="welcomeFiles" type="button"><svg class="i" aria-hidden="true"><use href="#i-file"></use></svg>打开文件</button>
+<button class="btn" id="welcomeSample" type="button" hidden><svg class="i" aria-hidden="true"><use href="#i-book"></use></svg>打开示例文档</button>
+</div>
+<div class="welcome-meta" id="welcomeMeta">正在检查最近文件夹…</div>
+<div class="welcome-keys">
+<div><kbd>Ctrl</kbd><kbd>P</kbd><span>快速打开</span></div>
+<div><kbd>Ctrl</kbd><kbd>B</kbd><span>切换侧栏</span></div>
+<div><kbd>Ctrl</kbd><kbd>E</kbd><span>源码</span></div>
+<div><kbd>Esc</kbd><span>关闭浮层</span></div>
+</div>
+</section>
+</div>
+<aside class="outline" id="outline" aria-label="文档大纲">
+<header class="outline-head"><span>大纲</span><button class="icon-btn" id="btnOutlineClose" title="关闭大纲" aria-label="关闭大纲"><svg class="i" aria-hidden="true"><use href="#i-x"></use></svg></button></header>
+<nav class="outline-list" id="outlineList"></nav>
+</aside>
+</div>
+</main>
+
+<footer class="statusbar">
+<div class="status-left"><span class="status-dot readme" id="statusDot"></span><span id="statusMode">说明 · 0 个文件</span></div>
+<div class="status-path" id="statusPath">未打开文件</div>
+<div class="status-right"><span id="statusInfo"></span><span class="sep"></span><span id="statusStats"></span></div>
+</footer>
+</div>
+
+<div class="backdrop" id="backdrop"></div>
+<div class="palette" id="palette" role="dialog" aria-modal="true" aria-label="快速打开文件">
+<div class="palette-box">
+<div class="palette-input-wrap"><svg class="i" aria-hidden="true"><use href="#i-search"></use></svg><input id="paletteInput" type="text" placeholder="按文件名或路径搜索…" autocomplete="off" spellcheck="false"></div>
+<div class="palette-list" id="paletteList"></div>
+<div class="palette-foot"><span><b>↑ ↓</b> 选择</span><span><b>Enter</b> 打开</span><span><b>Esc</b> 关闭</span></div>
+</div>
+</div>
+<div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="图片预览">
+<button class="lb-close" id="lbClose" title="关闭" aria-label="关闭"><svg class="i" aria-hidden="true"><use href="#i-x"></use></svg></button>
+<img id="lightboxImg" alt="">
+<div class="lb-caption" id="lbCaption"></div>
+</div>
+<div class="drop-overlay" id="dropOverlay"><div class="drop-card"><svg class="i" aria-hidden="true"><use href="#i-folder-open"></use></svg><strong>松开以打开</strong><span>文件夹或文件都可以</span></div></div>
+<div class="toast" id="toast" role="status"></div>
+<input type="file" id="fileInput" multiple hidden>
+<input type="file" id="folderInput" webkitdirectory directory multiple hidden>
+<script>/*MARKED*/</script>
+<script>/*PURIFY*/</script>
+<script type="text/markdown" id="readme-data">/*README*/</script>
+<script>/*APP*/</script>
+</body>
+</html>

@@ -1,0 +1,263 @@
+# SingleHtmlEditor
+
+SingleHtmlEditor 是一个可直接双击打开、完全离线运行的单文件文档阅读器与轻量文本编辑器。整个应用被打包进一个 HTML 文件，不需要安装、不需要后端，也不会上传本地文件。
+
+打开本地文件夹或选择文件后，可以用目录树浏览内容，阅读 Markdown、代码、JSON、CSV、HTML、Jupyter Notebook、图片、音视频、PDF、Office、EPUB、SQLite 等文件，并对文本类文件进行编辑和保存。
+
+## 主要特点
+
+- 单文件交付：正式版只有 `SingleHtmlEditor.html` 一个运行文件，方便复制、归档和离线分发。
+- 本地优先：文件读取、预览、编辑和保存都在浏览器内完成，不上传服务器。
+- 完全离线：CSS、JavaScript、Markdown 渲染、安全净化等资源全部内置，无外部 CDN 依赖。
+- 目录浏览：支持打开文件夹、选择多个文件、拖入文件或文件夹、目录树过滤、面包屑和上一文件/下一文件。
+- 多格式预览：覆盖常见文档、代码、表格、图片、媒体、压缩包和数据库文件。
+- 轻量编辑：文本类文件可进入编辑模式，支持语法高亮、`Ctrl+S` 保存和未保存提示。
+- 快速导航：`Ctrl+P` 模糊快速打开，Markdown/Notebook 支持大纲，图片支持灯箱查看。
+- 状态记忆：主题、侧栏宽度、上次文件、最近 5 个文件夹自动恢复；最近记录只保存目录句柄、名称和时间，不保存绝对路径。
+- 响应式界面：桌面双栏布局，窄屏自动切换为抽屉式侧栏。
+
+## 快速开始
+
+1. 用 Chrome 或 Edge 直接打开 `SingleHtmlEditor.html`，无需启动 Web 服务器。
+2. 点击“打开文件夹”选择目录，或点击“选择文件”选择单个/多个文件。
+3. 从左侧目录树或 `Ctrl+P` 快速打开列表中选择要阅读的文件。
+4. 需要编辑时点击右上角编辑按钮，修改后按 `Ctrl+S` 保存，按 `Esc` 取消。
+
+首次打开文件夹时，浏览器会请求读取权限。需要直接写回原文件的场景还会请求写入权限；这些权限由浏览器管理，不会离开本机。
+
+## 使用方式
+
+### 打开内容
+
+- **打开文件夹**：使用 File System Access API 扫描目录，保留文件句柄，可直接写回修改后的文件。推荐 Chrome / Edge。
+- **选择文件 / 选择文件夹**：使用普通文件选择框，适合 Firefox / Safari 或只需要阅读的场景；保存编辑时通常下载副本。
+- **拖放**：可把文件或文件夹拖入窗口。浏览器能提供的目录信息取决于当前浏览器能力。
+
+### 阅读与导航
+
+- 目录树支持递归展开、折叠全部、文件名过滤和刷新重扫。
+- 顶部工具栏提供面包屑、上一文件、下一文件、源码切换、大纲、下载、复制路径和快速打开。
+- Markdown 支持 GFM 表格、任务列表、代码高亮、相对图片/链接和 TeX 数学公式。
+- HTML 文件经过净化后在禁用脚本的沙箱 iframe 中预览，也可切换查看源码。
+- 图片支持灯箱查看，音频/视频/PDF 使用浏览器原生能力播放或预览。
+
+### 编辑与保存
+
+- 可编辑类型：Markdown、纯文本/代码、JSON、CSV/TSV、HTML、Notebook 等文本类文件。
+- 文件夹实时模式下，保存会写入原文件；文件选择模式下，保存会下载修改后的副本。
+- 超过预览阈值的文件默认截断显示，可点击“加载全文”后继续阅读或编辑。
+- 内置说明页不可编辑；二进制文件、压缩包和数据库只读。
+
+### 快捷键
+
+| 快捷键 | 功能 |
+| --- | --- |
+| `Ctrl+P` / `Cmd+P` | 快速打开文件 |
+| `Ctrl+B` / `Cmd+B` | 切换侧栏 |
+| `Ctrl+E` / `Cmd+E` | 切换 Markdown/JSON/CSV/HTML/Notebook 源码 |
+| `Ctrl+S` / `Cmd+S` | 保存当前编辑 |
+| `Alt+←` / `Alt+→` | 上一个 / 下一个文件 |
+| `Esc` | 关闭灯箱、快速打开或侧栏；编辑时取消编辑 |
+
+## 支持格式
+
+| 类别 | 常见扩展名 | 预览能力 |
+| --- | --- | --- |
+| Markdown | `.md` `.markdown` `.mdx` `.mkd` `.mkdn` 等 | GFM 渲染、代码高亮、数学公式、目录大纲、相对图片/链接 |
+| 文本与代码 | `.txt` `.log` `.js` `.ts` `.py` `.java` `.go` `.rs` `.css` `.xml` `.yaml` 等 | 等宽文本、语法高亮、源码查看、编辑 |
+| JSON | `.json` `.jsonc` `.json5` `.jsonl` `.ndjson` | 格式化、高亮、解析失败时回退原文 |
+| 表格 | `.csv` `.tsv` | 表格预览，默认最多 1000 行、80 列 |
+| 网页 | `.html` `.htm` `.xhtml` | DOMPurify 净化、沙箱 iframe 预览、源码切换 |
+| Notebook | `.ipynb` | 代码单元、Markdown 单元和常见输出预览 |
+| SQLite | `.db` `.sqlite` `.sqlite3` `.db3` 等 | 表/视图结构、前 1000 行数据，只读 |
+| 图片 | `.png` `.jpg` `.gif` `.webp` `.svg` `.bmp` `.avif` `.tiff` 等 | 浏览器支持的原生解码与灯箱 |
+| 音频 | `.mp3` `.wav` `.ogg` `.flac` `.m4a` `.aac` `.opus` 等 | 浏览器原生播放器 |
+| 视频 | `.mp4` `.webm` `.ogv` `.mov` 等 | 浏览器原生播放器 |
+| 字体 | `.ttf` `.otf` `.woff` `.woff2` | 字体样例预览 |
+| PDF | `.pdf` | 浏览器内置 PDF 阅读器 |
+| 压缩包 | `.zip` `.jar` `.apk` | 条目列表、内部文件虚拟浏览和下载 |
+| Office / 电子书 | `.docx` `.xlsx` `.pptx` `.odt` `.epub` | 基础内容解析和预览，不保证复杂排版完全一致 |
+| 其他二进制 | 任意未知扩展名 | 前 8 KB 十六进制预览和下载 |
+
+媒体格式能否播放取决于浏览器和操作系统的解码支持；Office、EPUB 和 PDF 的复杂排版由浏览器能力决定。
+
+## HTML 结构分析
+
+正式版 `SingleHtmlEditor.html` 是压缩后的单文件版本，结构分为外壳、payload 和启动器三层。
+
+### 总体骨架
+
+```text
+SingleHtmlEditor.html
+├─ <head>
+│  ├─ meta charset / viewport
+│  ├─ <title>SingleHtmlEditor</title>
+│  ├─ 内联主题引导脚本（读取 she.theme 或系统主题）
+│  ├─ <style id="she-style"></style>（运行时填入解压后的 CSS）
+│  └─ 关键内联样式（背景色、加载前隐藏 body）
+├─ <body>
+│  ├─ 内联 SVG symbol 图标集
+│  ├─ .app
+│  │  ├─ .sidebar：目录树、过滤框、打开按钮、最近状态
+│  │  ├─ .resizer：侧栏宽度拖拽条
+│  │  ├─ .main
+│  │  │  ├─ .topbar：面包屑与工具栏
+│  │  │  └─ .workspace
+│  │  │     ├─ .content-scroll
+│  │  │     │  ├─ #content：文档/媒体渲染区
+│  │  │     │  └─ #welcome：首屏欢迎页
+│  │  │     └─ #outline：文档大纲侧栏
+│  │  └─ .statusbar：模式、路径和统计信息
+│  ├─ #palette / #lightbox / #dropOverlay / #toast：交互浮层
+│  ├─ #fileInput / #folderInput：隐藏的文件选择框
+│  ├─ <script id="she-css">：gzip + Base64 的 CSS
+│  ├─ <script id="she-js">：gzip + Base64 的 marked + DOMPurify + 应用代码
+│  ├─ <script id="readme-data">：内置说明页 Markdown
+│  └─ 启动脚本：解压 payload、注入样式和脚本
+└─ 无外部资源引用
+```
+
+### 启动流程
+
+1. 主题引导脚本在样式加载前读取 `localStorage` 中的 `she.theme`，没有记录时跟随 `prefers-color-scheme`。
+2. 页面底部启动器把 `she-css` 和 `she-js` 中的 Base64 文本转成字节流，再用 `DecompressionStream('gzip')` 解压。
+3. 解压后的 CSS 写入 `#she-style`；解压后的 JavaScript 动态创建 `<script>` 并插入 `body`。
+4. 应用初始化后绑定事件、恢复主题/侧栏宽度/最近目录，并显示内置说明页或恢复上次文件。
+5. 启动完成前 `body` 保持隐藏，避免未样式化内容闪烁；解压失败时显示兼容性错误提示。
+
+### 运行时结构
+
+- `S`：集中保存当前模式、目录树、文件索引、当前文件、渲染状态、编辑状态、最近目录和缓存。
+- `els`：启动时缓存主要 DOM 节点，避免重复查询。
+- 文件抽象：统一处理目录句柄、`File`、`Blob`、压缩包虚拟条目和内置 README。
+- 渲染管线：`openFile()` 读取内容后按扩展名分发到 `renderMarkdown`、`renderJson`、`renderCsv`、`renderHtml`、`renderSqlite`、`renderPdf` 等渲染器。
+- 编辑管线：`enterEdit()` 进入编辑器，`saveEdit()` 在文件夹实时模式下写入句柄，否则下载副本；`cancelEdit()` 恢复原文。
+- 安全边界：HTML 和 EPUB 内容先经 DOMPurify 净化；HTML 预览运行在禁用脚本的 sandbox iframe 中。
+
+### 源码与构建
+
+`src/` 只保留构建正式版所需的最小源码集合：
+
+```text
+src/
+├─ build.py
+├─ shell.html
+├─ readme.md
+├─ css/
+│  ├─ base.css
+│  ├─ add.css
+│  └─ extra.css
+├─ app/
+│  ├─ app.core.js
+│  ├─ app.math.js
+│  ├─ app.zip.js
+│  ├─ app.highlight.js
+│  ├─ app.db.js
+│  ├─ app.render.js
+│  ├─ app.edit.js
+│  └─ app.bind.js
+└─ vendor/
+   ├─ marked.js
+   └─ purify.js
+```
+
+构建时，`src/build.py` 按固定顺序拼接 CSS 和 JavaScript，把 `marked`、`DOMPurify` 与应用代码一起 gzip 压缩并 Base64 编码，再替换 `shell.html` 中的占位符，直接生成根目录的 `SingleHtmlEditor.html`。构建过程不会生成 `app.js`、`app.css`、测试页或其他中间文件。
+
+## 构建
+
+运行环境只需要 Python 3.8+ 和标准库，不需要 Node.js、npm 或网络：
+
+```powershell
+python src\build.py
+```
+
+也可以指定输出文件：
+
+```powershell
+python src\build.py path\to\SingleHtmlEditor.html
+```
+
+脚本会输出文件路径、字节数和 SHA-256。构建使用固定顺序、固定 gzip 参数和 LF 换行，同一份源码应生成相同文件。
+
+## 配置要求
+
+### 运行环境
+
+| 项目 | 要求 |
+| --- | --- |
+| 操作系统 | Windows / macOS / Linux |
+| 启动方式 | 直接打开 `SingleHtmlEditor.html`，无需服务器 |
+| 推荐浏览器 | 最新版 Chrome / Edge（Chromium 内核） |
+| 其他浏览器 | Firefox / Safari 可阅读和选择文件，但通常不能直接写回目录 |
+| 网络 | 不需要 |
+| 安装 | 不需要 |
+| 构建环境 | Python 3.8+，仅标准库 |
+
+### 浏览器能力
+
+- 压缩单文件依赖 `DecompressionStream('gzip')`。浏览器不支持时会显示兼容性提示。
+- 直接打开文件夹、刷新重扫和写回原文件依赖 File System Access API（`showDirectoryPicker`、`createWritable`），目前以 Chromium 桌面浏览器支持最完整。
+- Firefox / Safari 可以通过普通文件选择框阅读，但保存编辑通常只能下载副本。
+- 移动端可以打开和阅读，但目录权限、文件写回和布局体验不如桌面端。
+
+### 本地状态
+
+应用没有独立配置文件，运行时状态保存在浏览器本地：
+
+| 存储位置 | 键 / 数据库 | 内容 |
+| --- | --- | --- |
+| `localStorage` | `she.theme` | `dark` 或 `light` |
+| `localStorage` | `she.sideWidth` | 侧栏宽度（230–560 px） |
+| `localStorage` | `she.last` | 上次打开的相对文件路径 |
+| IndexedDB | `she-recent` / `recent-folders` | 最近文件夹的句柄、名称和时间，最多 5 条 |
+
+最近文件夹记录不包含绝对路径。清理浏览器站点数据会同时清除这些记录，下次打开文件夹即可重新建立。
+
+### 容量限制
+
+| 项目 | 默认限制 |
+| --- | --- |
+| 文本预览 | 5 MB，可手动加载全文 |
+| 目录扫描 | 最多 5000 个文件、24 层深度 |
+| ZIP 条目 | 最多 2000 条，解压上限 200 MB |
+| SQLite 文件 | 96 MB，表数据最多 1000 行、80 列 |
+| CSV/TSV | 最多 1000 行、80 列 |
+| XLSX | 每个工作表最多 1000 行、80 列 |
+| 二进制预览 | 前 8 KB |
+| 最近文件夹 | 5 个 |
+
+## 安全与隐私
+
+- 所有文件处理都在当前浏览器页面内完成，不上传文件，也不依赖远程接口。
+- HTML、EPUB 和 Notebook HTML 输出经过安全净化；HTML 预览在禁用脚本的 sandbox iframe 中运行。
+- 不执行被打开文件中的脚本；压缩包、Office 和电子书只做内容解析。
+- 最近目录句柄和界面状态保存在浏览器本地；清除站点数据会删除这些记录。
+- 浏览器权限、下载目录和本地文件安全策略由浏览器与操作系统决定。
+
+## 已知限制
+
+- 当前版本是单文档阅读界面，尚未实现多标签页和可固定标签。
+- Office、EPUB 和 PDF 只提供基础预览，复杂版式、字体、宏、加密或 DRM 内容可能无法正确显示。
+- SQLite 为只读浏览，不提供 SQL 查询编辑器。
+- 超大文本默认截断，超大目录、压缩包和数据库受上表限制。
+- 图片、音频、视频和字体的实际可用性取决于浏览器解码能力。
+- 直接写回原文件需要浏览器支持 File System Access API，并需要用户授予写入权限。
+
+## 第三方组件
+
+| 组件 | 版本 | 许可证 |
+| --- | --- | --- |
+| marked | 12.0.2 | MIT |
+| DOMPurify | 3.1.6 | Apache-2.0 / MPL-2.0 |
+
+第三方组件保留其原始版权与许可证声明。
+
+## 正式版校验
+
+```text
+文件：SingleHtmlEditor.html
+大小：138,654 字节
+SHA-256：b1a88b8baad2781bd0d95d004a7d60caab5a15094991cfc7ad0763fe1e8b104f
+```
+
+重新构建后可用上面的 SHA-256 校验生成结果是否一致。
