@@ -11,8 +11,9 @@ function updateEditMeta() {
   updateStats(S.editText);
   updateStatusPath();
   updateChrome();
+  updateActiveTabDirty();
 }
-function renderEditor() {
+function renderEditor(state) {
   setContent('text'); clearContent();
   els.content.className = 'doc edit-body';
   var enc = S.decodedEncoding ? encLabel(S.decodedEncoding) : '自动';
@@ -65,8 +66,57 @@ function renderEditor() {
   els.content.appendChild(box);
   editorPaint();
   updateEditMeta();
-  setTimeout(function () { try { ta.focus(); } catch (e) {} }, 20);
+  setTimeout(function () {
+    try {
+      ta.focus();
+      var max = ta.value.length;
+      var start = state && isFinite(state.selStart) ? Math.max(0, Math.min(max, state.selStart)) : 0;
+      var end = state && isFinite(state.selEnd) ? Math.max(start, Math.min(max, state.selEnd)) : start;
+      ta.setSelectionRange(start, end);
+      if (state) {
+        ta.scrollTop = Math.max(0, state.scrollTop || 0);
+        ta.scrollLeft = Math.max(0, state.scrollLeft || 0);
+        editorSyncScroll();
+      }
+    } catch (e) {}
+  }, 20);
 }
+async function restoreEditTab(tab, opts, token) {
+  var edit = tab.edit;
+  if (!edit) return false;
+  var node = tab.node, text, original, decoded;
+  if (edit.dirty) {
+    text = edit.text == null ? '' : edit.text;
+    original = edit.original == null ? text : edit.original;
+    decoded = edit.decodedEncoding || '';
+  } else {
+    var res = await readTextOf(node, S.encoding);
+    if (token !== S.openToken || S.current !== node) return true;
+    if (S.truncated) {
+      tab.edit = null;
+      S.editMode = false; S.editDirty = false; S.editOriginal = ''; S.editText = ''; S.editSaving = false;
+      toast('文件已变大或已截断，无法恢复编辑', 3200);
+      return false;
+    }
+    text = res.text;
+    original = res.text;
+    decoded = res.enc;
+  }
+  if (token !== S.openToken || S.current !== node) return true;
+  S.raw = text;
+  S.decodedEncoding = decoded;
+  S.editOriginal = original;
+  S.editText = text;
+  S.editMode = true;
+  S.editDirty = editDirtyNow();
+  S.editSaving = false;
+  renderEditor(edit);
+  finishProgress();
+  if (!node.virtualParent && !node.readme && !opts.noHistory) { storeSet(LS.last, node.path); updateQuery(node.path); }
+  updateChrome(); updatePrevNext(); updateOutlineActive();
+  return true;
+}
+
 function enterEdit() {
   if (S.editMode) return;
   if (!S.current) return;
@@ -83,12 +133,15 @@ function enterEdit() {
 }
 function cancelEdit(force) {
   if (!S.editMode) return;
+  if (S.editSaving) { toast('正在保存，请稍候…', 1800); return; }
   if (!force && editDirtyNow() && !window.confirm('放弃未保存的修改？')) return;
+  if (S.activeTab) S.activeTab.edit = null;
   S.editMode = false;
   S.editDirty = false;
   S.editOriginal = '';
   S.editText = '';
   S.editSaving = false;
+  updateActiveTabDirty();
   updateChrome();
   reopenCurrent();
 }
@@ -128,6 +181,8 @@ async function saveEdit() {
       S.editOriginal = text;
       S.editText = text;
       S.editSaving = false;
+      if (S.activeTab && S.activeTab.node === node) S.activeTab.edit = null;
+      renderTabBar();
       toast('已保存到磁盘', 2200);
       reopenCurrent();
       return;
@@ -146,6 +201,8 @@ async function saveEdit() {
     S.editOriginal = text;
     S.editText = text;
     S.editSaving = false;
+    if (S.activeTab && S.activeTab.node === node) S.activeTab.edit = null;
+    renderTabBar();
     toast('已更新当前预览，并下载保存副本', 3000);
     reopenCurrent();
   } catch (err) {

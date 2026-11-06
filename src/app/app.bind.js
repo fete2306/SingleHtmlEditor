@@ -374,6 +374,7 @@ function renderRecentPanel() {
   if (open) open.addEventListener('click', pickFolder);
 }
 function showReadme() {
+  if (!confirmDiscardTabs('打开使用说明')) return Promise.resolve(false);
   var text = S.readmeText ? S.readmeText : readReadmeText();
   S.readmeText = text;
   if (!String(text || '').trim()) {
@@ -407,15 +408,14 @@ function restoreRecentFolder(arg) {
     if (perm !== 'granted') throw new Error('没有读取权限');
     return useDirectoryHandle(handle);
   }).then(function (ok) {
-    if (!ok) { showReadme(); return false; }
-    return true;
+    return !!ok;
   }).catch(function (err) {
     if (err && err.name === 'AbortError') {
       if (!S.files.length || S.mode === 'readme') showReadme();
       return false;
     }
     toast('无法恢复文件夹：' + (err && err.message ? err.message : err), 3600);
-    showReadme();
+    if (!S.tabs.length) showReadme();
     return false;
   });
 }
@@ -728,7 +728,7 @@ function bind() {
     }
   });
   window.addEventListener('beforeunload', function (event) {
-    if (S.editDirty) { event.preventDefault(); event.returnValue = ''; }
+    if (hasDirtyTabs()) { event.preventDefault(); event.returnValue = ''; }
   });
   bindResizer();
   bindDragDrop();

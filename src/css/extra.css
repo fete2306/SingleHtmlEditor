@@ -10,6 +10,8 @@
 .tab .tree-icon,.tab .tree-icon .i{width:14px;height:14px}
 .tab-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tab.preview .tab-name{font-style:italic}
+.tab-dirty{display:none;flex:none;width:7px;height:7px;border-radius:50%;background:var(--accent)}
+.tab.dirty .tab-dirty{display:block}
 .tab-close{display:grid;place-items:center;flex:none;width:18px;height:18px;padding:0;border:0;border-radius:4px;background:transparent;color:var(--fg-muted);opacity:0;transition:opacity .12s,background .12s}
 .tab:hover .tab-close,.tab.active .tab-close,.tab:focus-visible .tab-close{opacity:1}
 .tab-close:hover{background:var(--bg-active);color:var(--fg-strong)}

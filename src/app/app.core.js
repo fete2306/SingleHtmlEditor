@@ -466,6 +466,7 @@ function scanDir(handle, prefix, name, depth) {
   })();
 }
 function useDirectoryHandle(handle) {
+  if (!confirmDiscardTabs('切换文件夹')) return Promise.resolve(false);
   toast('正在扫描文件夹…', 1600);
   els.statusMode.textContent = '扫描中…';
   S.scanCount = 0; S.scanLimited = false;
@@ -484,7 +485,8 @@ function useDirectoryHandle(handle) {
   });
 }
 function useFileItems(items, rootName) {
-  if (!items || !items.length) return;
+  if (!items || !items.length) return Promise.resolve(false);
+  if (!confirmDiscardTabs('重新选择文件')) return Promise.resolve(false);
   if (!rootName) rootName = '已打开的文件';
   var strip = rootName + '/';
   var sameRoot = items.every(function (it) { return String(it.path).indexOf(strip) === 0; });
@@ -512,11 +514,11 @@ function useFileItems(items, rootName) {
     var bn = nm.toLowerCase();
     if (!fileMapByName.has(bn)) fileMapByName.set(bn, it.file);
   });
-  if (!root.children.length) return;
+  if (!root.children.length) return Promise.resolve(false);
   finalizeTree(root);
   S.fileMap = fileMap; S.fileMapLower = fileMapLower; S.fileMapByName = fileMapByName;
   var prefer = new URLSearchParams(location.search).get('file') || null;
-  activateTree(root, 'files', { rootName: rootName, preferPath: prefer, restoreLast: false });
+  return activateTree(root, 'files', { rootName: rootName, preferPath: prefer, restoreLast: false });
 }
 function useFileList(list, rootName) {
   var files = Array.prototype.slice.call(list || []);
@@ -527,7 +529,7 @@ function useFileList(list, rootName) {
     var common = first.length > 1 && paths.every(function (p) { return p.indexOf(first[0] + '/') === 0; });
     rootName = common ? first[0] : (files.length === 1 ? '已打开的文件' : '已打开的文件');
   }
-  useFileItems(files.map(function (f, i) { return { file: f, path: paths[i] }; }), rootName);
+  return useFileItems(files.map(function (f, i) { return { file: f, path: paths[i] }; }), rootName);
 }
 function collectEntries(entry, prefix, out) {
   return new Promise(function (resolve) {

@@ -737,6 +737,7 @@ async function loadFileIntoView(node, opts) {
   if (!node) return;
   var token = ++S.openToken;
   var keep = !!opts.keepState;
+  var tab = opts.tab || null;
   var parentZip = node.virtualParent ? S.zipCache : null;
   resetURLs();
   S.zipCache = parentZip || null;
@@ -744,7 +745,12 @@ async function loadFileIntoView(node, opts) {
   S.currentKind = kindOf(node.name);
   S.xlsx = null; S.db = null; S.dbTable = '';
   if (!keep) {
-    S.sourceMode = false; S.fullMode = false; S.truncated = false; S.wrap = false; S.encoding = 'auto';
+    var view = tab && tab.view;
+    S.sourceMode = !!(view && view.sourceMode);
+    S.wrap = !!(view && view.wrap);
+    S.encoding = view && view.encoding ? view.encoding : 'auto';
+    S.decodedEncoding = '';
+    S.fullMode = false; S.truncated = false;
     S.editMode = false; S.editDirty = false; S.editOriginal = ''; S.editText = ''; S.editSaving = false;
   }
   S.raw = ''; S.currentBlob = null; S.currentURL = ''; S.outline = []; S.outlineItems = []; S.activeHeading = -1; S.mathFallbacks = 0; S.fontFamily = '';
@@ -755,6 +761,7 @@ async function loadFileIntoView(node, opts) {
   setProgress(8);
   showLoading('正在读取 ' + node.name + '…');
   try {
+    if (!keep && tab && tab.edit && await restoreEditTab(tab, opts, token)) return;
     if (node.blob) S.currentBlob = node.blob;
     if (S.currentKind === 'md') await renderMarkdown(node, opts);
     else if (S.currentKind === 'text') await renderText(node, opts);
