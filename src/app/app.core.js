@@ -8,29 +8,31 @@ var MAX_TEXT = 5 * 1024 * 1024;
 var MAX_ENTRIES = 2000;
 var MAX_ZIP_BYTES = 200 * 1024 * 1024;
 var MAX_EXTRACT = 200 * 1024 * 1024;
-var MAX_FILES = 5000;
+var SCAN_DEFAULT = { files: 10000, depth: 24 };
 var SKIP = { 'node_modules': 1, '.git': 1, '.svn': 1, '.hg': 1, '.idea': 1, '.vscode': 1, '__pycache__': 1, 'bower_components': 1, '$RECYCLE.BIN': 1, 'System Volume Information': 1 };
 
 var S = {
   mode: 'welcome', rootName: '', root: null, files: [], fileByPath: new Map(), fileByPathLower: new Map(),
   dirByPath: new Map(), expanded: new Set(), current: null, raw: '', currentBlob: null, currentKind: '',
   sourceMode: false, outline: [], outlineItems: [], activeHeading: -1, filter: '', paletteOpen: false,
-  paletteMatches: [], paletteIndex: 0, lightboxOpen: false, theme: 'dark', toastTimer: 0, openToken: 0,
+  paletteMatches: [], paletteIndex: 0, lightboxOpen: false, theme: 'dark', themeMode: 'system', toastTimer: 0, openToken: 0,
   scrollRaf: 0, objectURLs: [], docURLs: [], imageCache: new Map(), zipCache: null, rootHandle: null,
   dirHandleCache: new Map(), fileMap: null, fileMapLower: null, fileMapByName: null, readmeText: '', recentFolders: [],
   truncated: false, fullMode: false, encoding: 'auto', decodedEncoding: '', mathFallbacks: 0, stats: null,
-  wrap: false, scanLimited: false, scanCount: 0, fontFamily: '', preloadBytes: 0,
+  wrap: false, scanLimited: false, scanLimitedDepth: false, scanCount: 0,
+  scanApplied: { maxFiles: SCAN_DEFAULT.files, maxDepth: SCAN_DEFAULT.depth, fileLimited: false, depthLimited: false },
+  fontFamily: '', preloadBytes: 0,
   currentURL: '', progressTimer: 0, xlsx: null, rawDeflate: false, db: null, dbTable: '',
   editMode: false, editDirty: false, editOriginal: '', editText: '', editSaving: false,
-  tabs: [], activeTab: null
+  settings: null, settingsOpen: false, tabs: [], activeTab: null
 };
 
 var els = {};
-['sidebar','tree','filter','filterBox','filterClear','rootName','modePill','fileTotal','sideHint','content','welcome','welcomeMeta','welcomeSample','welcomeOpen','welcomeFiles','welcomeHelp','welcomePalette','scroll','crumbs','main','outline','outlineList','progressBar','statusMode','statusPath','statusInfo','statusStats','statusDot','palette','paletteInput','paletteList','lightbox','lightboxImg','lbCaption','lbClose','toast','dropOverlay','fileInput','folderInput','activitybar','btnExplorer','btnActivityPalette','btnActivityHelp','btnActivityTheme','btnTheme','btnSource','btnOutline','btnCopyPath','btnPalette','btnOpenDir','btnOpenFiles','btnOpenDir2','btnOpenFiles2','btnRefresh','btnCollapse','btnMenu','btnOutlineClose','backdrop','resizer','btnPrev','btnNext','btnDownload','btnWrap','encoding','btnEdit','tabbar','tabstrip'].forEach(function (id) { els[id] = document.getElementById(id); });
+['sidebar','tree','scanNotice','filter','filterBox','filterClear','rootName','modePill','fileTotal','sideHint','content','welcome','welcomeMeta','welcomeSample','welcomeOpen','welcomeFiles','welcomeHelp','welcomePalette','scroll','crumbs','main','outline','outlineList','progressBar','statusMode','statusPath','statusInfo','statusStats','statusDot','palette','paletteInput','paletteList','lightbox','lightboxImg','lbCaption','lbClose','toast','dropOverlay','fileInput','folderInput','activitybar','btnExplorer','btnActivityPalette','btnActivityHelp','btnActivityTheme','btnActivitySettings','btnTheme','btnSource','btnOutline','btnCopyPath','btnPalette','btnOpenDir','btnOpenFiles','btnOpenDir2','btnOpenFiles2','btnRefresh','btnCollapse','btnMenu','btnOutlineClose','backdrop','resizer','btnPrev','btnNext','btnDownload','btnWrap','encoding','btnEdit','tabbar','tabstrip','settings','settingsClose','settingsTheme','settingsFontSize','settingsFontSizeValue','settingsLineHeight','settingsLineHeightValue','settingsReadWidth','settingsReadWidthValue','settingsWrap','settingsAutoRestore','settingsConfirmClose','settingsMaxFiles','settingsMaxDepth','settingsReset','settingsClearRecent','settingsHelp'].forEach(function (id) { els[id] = document.getElementById(id); });
 els.lightboxClose = els.lbClose;
 els.lightboxCap = els.lbCaption;
 
-var LS = { theme: 'she.theme', last: 'she.last', width: 'she.sideWidth' };
+var LS = { theme: 'she.theme', themeMode: 'she.themeMode', settings: 'she.settings', last: 'she.last', width: 'she.sideWidth' };
 var MODES = { welcome: { label: '欢迎', cls: 'mode-welcome' }, live: { label: '实时', cls: 'live' }, files: { label: '已载入', cls: 'files' } };
 
 var MD_EXT = { md: 1, markdown: 1, mdown: 1, mkd: 1, mkdn: 1, mdx: 1, mdtxt: 1, mdtext: 1 };
@@ -303,9 +305,26 @@ function updateActiveRow(path) {
   if (t) t.classList.add('active');
 }
 
+function fileCountText() {
+  var count = S.scanLimited ? fmtNum(S.scanApplied.maxFiles) + '+' : fmtNum(S.files.length);
+  return count + ' 个文件';
+}
+function scanNoticeText() {
+  var parts = [];
+  if (S.scanLimited) parts.push('仅显示前 ' + fmtNum(S.scanApplied.maxFiles) + ' 个文件，可在设置中调整上限');
+  if (S.scanLimitedDepth) parts.push('已到 ' + fmtNum(S.scanApplied.maxDepth) + ' 层目录深度限制，可在设置中调整');
+  return parts.join('；');
+}
+function renderScanNotice() {
+  if (!els.scanNotice) return;
+  var text = S.mode === 'welcome' ? '' : scanNoticeText();
+  els.scanNotice.hidden = !text;
+  els.scanNotice.textContent = text;
+  els.scanNotice.title = text;
+}
 function updateModeStatus() {
   var mode = MODES[S.mode] || MODES.welcome;
-  els.statusMode.textContent = mode.label + ' · ' + (S.mode === 'welcome' ? 0 : S.files.length) + ' 个文件';
+  els.statusMode.textContent = mode.label + ' · ' + (S.mode === 'welcome' ? '0 个文件' : fileCountText());
   els.statusDot.className = 'status-dot ' + mode.cls;
   if (S.mode === 'live') els.statusDot.title = '已连接文件夹，内容实时读取';
   else if (S.mode === 'files') els.statusDot.title = '已载入文件夹或文件';
@@ -317,18 +336,19 @@ function updateSidebarMeta() {
   els.rootName.textContent = S.rootName || '未打开';
   els.modePill.textContent = mode.label;
   els.modePill.className = 'mode-pill ' + mode.cls;
-  els.fileTotal.textContent = S.files.length + ' 个文件';
+  els.fileTotal.textContent = fileCountText();
   els.welcomeSample.hidden = !S.files.length || S.mode === 'welcome';
   if (S.mode === 'live') {
-    els.sideHint.textContent = '实时读取 · 支持图片和相对链接';
-    els.welcomeMeta.textContent = '已连接文件夹，包含 ' + S.files.length + ' 个文件';
+    els.sideHint.textContent = S.scanLimited || S.scanLimitedDepth ? '实时读取 · 已按设置截断' : '实时读取 · 支持图片和相对链接';
+    els.welcomeMeta.textContent = '已连接文件夹，包含 ' + fileCountText();
   } else if (S.mode === 'files') {
-    els.sideHint.textContent = '已载入 ' + S.files.length + ' 个文件';
-    els.welcomeMeta.textContent = '已载入 ' + S.files.length + ' 个文件';
+    els.sideHint.textContent = '已载入 ' + fileCountText();
+    els.welcomeMeta.textContent = '已载入 ' + fileCountText();
   } else {
     els.sideHint.textContent = '拖入文件夹或文件';
     els.welcomeMeta.textContent = '打开文件夹或文件开始浏览';
   }
+  renderScanNotice();
   updateModeStatus();
 }
 function updateChrome() {
@@ -446,9 +466,19 @@ function goFile(delta) {
   if (next) openFile(next);
 }
 
-function scanDir(handle, prefix, name, depth) {
+function newScanLimits() {
+  var settings = S.settings || {};
+  return {
+    maxFiles: Number(settings.maxFiles) || SCAN_DEFAULT.files,
+    maxDepth: Number(settings.maxDepth) || SCAN_DEFAULT.depth,
+    fileLimited: false,
+    depthLimited: false
+  };
+}
+function scanDir(handle, prefix, name, depth, limit) {
   var node = { type: 'dir', name: name, path: prefix, children: [], handle: handle };
-  if (depth > 24 || S.scanCount >= MAX_FILES) return Promise.resolve(node);
+  if (depth > limit.maxDepth) { limit.depthLimited = true; return Promise.resolve(node); }
+  if (S.scanCount >= limit.maxFiles) { limit.fileLimited = true; return Promise.resolve(node); }
   var entries = [];
   return (async function () {
     try {
@@ -463,9 +493,9 @@ function scanDir(handle, prefix, name, depth) {
       return collator.compare(a[0], b[0]);
     });
     for (var i = 0; i < entries.length; i++) {
-      if (S.scanCount >= MAX_FILES) { S.scanLimited = true; break; }
+      if (S.scanCount >= limit.maxFiles) { limit.fileLimited = true; break; }
       var en = entries[i][0], eh = entries[i][1], p = prefix ? prefix + '/' + en : en;
-      if (eh.kind === 'directory') node.children.push(await scanDir(eh, p, en, depth + 1));
+      if (eh.kind === 'directory') node.children.push(await scanDir(eh, p, en, depth + 1, limit));
       else { node.children.push({ type: 'file', name: en, path: p, handle: eh }); S.scanCount++; }
     }
     return node;
@@ -475,13 +505,18 @@ function useDirectoryHandle(handle) {
   if (!confirmDiscardTabs('切换文件夹')) return Promise.resolve(false);
   toast('正在扫描文件夹…', 1600);
   els.statusMode.textContent = '扫描中…';
-  S.scanCount = 0; S.scanLimited = false;
+  S.scanCount = 0; S.scanLimited = false; S.scanLimitedDepth = false;
+  var limit = newScanLimits();
+  S.scanApplied = limit;
   var prefer = S.current && !S.current.readme ? S.current.path : null;
-  return scanDir(handle, '', handle.name, 0).then(function (root) {
+  return scanDir(handle, '', handle.name, 0, limit).then(function (root) {
     S.rootHandle = handle;
+    S.scanLimited = limit.fileLimited;
+    S.scanLimitedDepth = limit.depthLimited;
     activateTree(root, 'live', { rootName: handle.name, preferPath: prefer || new URLSearchParams(location.search).get('file') });
     var n = S.files.length;
-    toast(n ? '已载入 ' + n + ' 个文件' + (S.scanLimited ? '（已达到数量上限）' : '') : '这个文件夹里没有可显示的文件', 2600);
+    var notice = scanNoticeText();
+    toast(n ? '已载入 ' + fileCountText() + (notice ? '（已按设置截断）' : '') : '这个文件夹里没有可显示的文件', 2600);
     rememberFolder(handle);
     return true;
   }).catch(function (err) {
@@ -500,10 +535,15 @@ function useFileItems(items, rootName) {
   var dirs = new Map([['', root]]);
   var fileMap = new Map(), fileMapLower = new Map(), fileMapByName = new Map();
   var seen = new Map();
+  var limit = newScanLimits();
+  var accepted = 0;
   items.forEach(function (it) {
     var rel = normPath(sameRoot ? String(it.path).slice(strip.length) : it.path);
     if (!rel) return;
-    var segs = rel.split('/'), cur = root, prefix = '';
+    var segs = rel.split('/');
+    if (segs.length - 1 > limit.maxDepth) { limit.depthLimited = true; return; }
+    if (accepted >= limit.maxFiles) { limit.fileLimited = true; return; }
+    var cur = root, prefix = '';
     for (var i = 0; i < segs.length - 1; i++) {
       prefix = prefix ? prefix + '/' + segs[i] : segs[i];
       var d = dirs.get(prefix);
@@ -515,16 +555,27 @@ function useFileItems(items, rootName) {
     seen.set(rel, (seen.get(rel) || 0) + 1);
     var fnode = { type: 'file', name: nm, path: rel, file: it.file, size: it.file.size, mtime: it.file.lastModified };
     cur.children.push(fnode);
+    accepted++;
     fileMap.set(rel, it.file);
     fileMapLower.set(rel.toLowerCase(), it.file);
     var bn = nm.toLowerCase();
     if (!fileMapByName.has(bn)) fileMapByName.set(bn, it.file);
   });
-  if (!root.children.length) return Promise.resolve(false);
+  if (!root.children.length) {
+    if (limit.depthLimited) toast('所选文件超过了设置中的目录深度限制', 3000);
+    return Promise.resolve(false);
+  }
   finalizeTree(root);
+  S.scanCount = accepted;
+  S.scanLimited = limit.fileLimited;
+  S.scanLimitedDepth = limit.depthLimited;
+  S.scanApplied = limit;
   S.fileMap = fileMap; S.fileMapLower = fileMapLower; S.fileMapByName = fileMapByName;
   var prefer = new URLSearchParams(location.search).get('file') || null;
-  return activateTree(root, 'files', { rootName: rootName, preferPath: prefer, restoreLast: false });
+  return activateTree(root, 'files', { rootName: rootName, preferPath: prefer, restoreLast: false }).then(function (ok) {
+    if (limit.fileLimited || limit.depthLimited) toast('已按设置截断文件列表，可在设置中调整限制', 2800);
+    return ok;
+  });
 }
 function useFileList(list, rootName) {
   var files = Array.prototype.slice.call(list || []);
@@ -614,9 +665,14 @@ function toggleSidebar() {
   else document.body.classList.toggle('sidebar-collapsed');
   syncActivityState();
 }
+function preferredTheme() {
+  return window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+}
 function applyTheme(theme) {
-  S.theme = theme === 'light' ? 'light' : 'dark';
+  S.themeMode = theme === 'light' || theme === 'dark' ? theme : 'system';
+  S.theme = S.themeMode === 'system' ? preferredTheme() : S.themeMode;
   document.documentElement.dataset.theme = S.theme;
+  storeSet(LS.themeMode, S.themeMode);
   storeSet(LS.theme, S.theme);
   [els.btnTheme, els.btnActivityTheme].forEach(function (btn) {
     if (!btn) return;
@@ -624,6 +680,7 @@ function applyTheme(theme) {
     if (use) use.setAttribute('href', S.theme === 'dark' ? '#i-sun' : '#i-moon');
     btn.title = S.theme === 'dark' ? '切换到浅色主题' : '切换到深色主题';
   });
+  syncSettingsUI();
 }
 
 function getBlob(node) {

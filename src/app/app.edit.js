@@ -36,6 +36,7 @@ function renderEditor(state) {
   }
   function editorPaint() {
     if (raf) { cancelAnimationFrame(raf); raf = 0; }
+    if (!S.current || !ta.isConnected) return;
     var text = ta.value, lang = langOfName(S.current.name);
     if (!text || lang === 'text' || lang === 'csv' || text.length > HL_MAX) hl.textContent = text;
     else hl.innerHTML = '<span></span>' + highlightCode(text, lang);

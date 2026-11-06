@@ -25,6 +25,7 @@ function hasDirtyTabs() {
 
 function confirmDiscardTabs(action) {
   if (S.editSaving) { toast('正在保存，请稍候…', 1800); return false; }
+  if (S.settings && S.settings.confirmClose === false) return true;
   var count = dirtyTabCount();
   if (!count) return true;
   return window.confirm('有 ' + count + ' 个标签含未保存的修改，' + action + '会丢失这些草稿。继续吗？');
@@ -259,7 +260,7 @@ function closeTab(tab, opts) {
     toast('正在保存，请稍候…', 1800);
     return false;
   }
-  if (tabDirty(tab) && !opts.force) {
+  if (tabDirty(tab) && !opts.force && (!S.settings || S.settings.confirmClose !== false)) {
     if (!window.confirm('标签“' + tabLabel(tab) + '”有未保存的修改，关闭后会丢失。继续吗？')) return false;
   }
   var index = S.tabs.indexOf(tab);

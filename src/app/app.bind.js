@@ -421,6 +421,7 @@ function initStartup() {
   renderRecentPanel();
   return loadRecentFolders().then(function (list) {
     var latest = list[0];
+    if (S.settings && S.settings.autoRestore === false) return showWelcome();
     if (!latest || !latest.handle || typeof latest.handle.queryPermission !== 'function') return showWelcome();
     return Promise.resolve(latest.handle.queryPermission({ mode: 'read' })).then(function (perm) {
       if (perm !== 'granted') return showWelcome();
@@ -717,6 +718,7 @@ function bind() {
     if (event.altKey && key === 'ArrowLeft') { event.preventDefault(); goFile(-1); return; }
     if (event.altKey && key === 'ArrowRight') { event.preventDefault(); goFile(1); return; }
     if (key === 'Escape') {
+      if (S.settingsOpen) { closeSettings(); return; }
       if (S.lightboxOpen) { closeLightbox(); return; }
       if (S.paletteOpen) { closePalette(); return; }
       if (document.body.classList.contains('sidebar-open')) { closeSidebarMobile(); return; }
@@ -728,20 +730,26 @@ function bind() {
     }
   });
   window.addEventListener('beforeunload', function (event) {
-    if (hasDirtyTabs()) { event.preventDefault(); event.returnValue = ''; }
+    if ((!S.settings || S.settings.confirmClose !== false) && hasDirtyTabs()) { event.preventDefault(); event.returnValue = ''; }
   });
   window.addEventListener('resize', syncActivityState);
   bindResizer();
   bindDragDrop();
+  bindSettings();
   syncActivityState();
 }
 
 function init() {
   try { S.rawDeflate = !!new DecompressionStream('deflate-raw'); }
   catch (e) { S.rawDeflate = false; }
-  var savedTheme = storeGet(LS.theme);
-  if (!savedTheme) savedTheme = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
-  applyTheme(savedTheme);
+  loadSettings();
+  var savedMode = storeGet(LS.themeMode);
+  if (savedMode !== 'system' && savedMode !== 'dark' && savedMode !== 'light') {
+    var savedTheme = storeGet(LS.theme);
+    savedMode = savedTheme === 'light' || savedTheme === 'dark' ? savedTheme : 'system';
+  }
+  applyTheme(savedMode);
+  applyAppearanceSettings();
   var savedWidth = parseInt(storeGet(LS.width) || '', 10);
   if (savedWidth >= 230 && savedWidth <= 560) document.documentElement.style.setProperty('--side-w', savedWidth + 'px');
   bind();

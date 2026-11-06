@@ -25,6 +25,7 @@ script = "\n".join(
     read("app/" + name)
     for name in (
         "app.core.js",
+        "app.settings.js",
         "app.math.js",
         "app.zip.js",
         "app.highlight.js",

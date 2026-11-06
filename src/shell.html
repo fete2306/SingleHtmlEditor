@@ -38,6 +38,7 @@
 <symbol id="i-next" viewBox="0 0 16 16"><path d="m6.5 4 4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
 <symbol id="i-wrap" viewBox="0 0 16 16"><g fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 4h11M2.5 8h8.2a2 2 0 0 1 0 4H8.3"/><path d="m9.8 10.2-1.5 1.8 1.5 1.8M2.5 12h3"/></g></symbol>
 <symbol id="i-edit" viewBox="0 0 16 16"><g fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="m3.1 12.9.5-2.6 7.1-7.1a1.3 1.3 0 0 1 1.8 0l.3.3a1.3 1.3 0 0 1 0 1.8l-7.1 7.1zM9.9 4l2.1 2.1"/></g></symbol>
+<symbol id="i-settings" viewBox="0 0 16 16"><g fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"><path d="m6.9 1.8-.3 1.5a5.2 5.2 0 0 0-1 .6L4.2 3.2 2.7 4.7l.7 1.4c-.2.3-.4.6-.6 1l-1.5.3v2.2l1.5.3c.1.4.3.7.6 1l-.7 1.4 1.5 1.5 1.4-.7c.3.2.6.4 1 .6l.3 1.5h2.2l.3-1.5c.4-.1.7-.3 1-.6l1.4.7 1.5-1.5-.7-1.4c.2-.3.4-.6.6-1l1.5-.3V7.4l-1.5-.3c-.1-.4-.3-.7-.6-1l.7-1.4-1.5-1.5-1.4.7c-.3-.2-.6-.4-1-.6l-.3-1.5z"/><circle cx="8" cy="8" r="2.1"/></g></symbol>
 </svg>
 
 <div class="app">
@@ -49,6 +50,7 @@
 <div class="activity-bottom">
 <button class="activity-btn" id="btnActivityHelp" title="使用说明" aria-label="使用说明"><svg class="i" aria-hidden="true"><use href="#i-book"></use></svg></button>
 <button class="activity-btn" id="btnActivityTheme" title="切换主题" aria-label="切换主题"><svg class="i" aria-hidden="true"><use href="#i-sun"></use></svg></button>
+<button class="activity-btn" id="btnActivitySettings" title="设置" aria-label="设置"><svg class="i" aria-hidden="true"><use href="#i-settings"></use></svg></button>
 </div>
 </nav>
 <aside class="sidebar" id="sidebar">
@@ -71,6 +73,7 @@
 <input id="filter" type="text" placeholder="搜索文件" autocomplete="off" spellcheck="false">
 <button class="filter-clear" id="filterClear" type="button" title="清除筛选" aria-label="清除筛选"><svg class="i" aria-hidden="true"><use href="#i-x"></use></svg></button>
 </div>
+<div class="scan-notice" id="scanNotice" role="status" hidden></div>
 <nav class="tree" id="tree" role="tree" aria-label="文件"></nav>
 <footer class="side-foot">
 <button class="open-btn" id="btnOpenDir2" type="button"><svg class="i" aria-hidden="true"><use href="#i-folder-open"></use></svg><span>打开文件夹</span></button>
@@ -177,6 +180,72 @@
 </div>
 
 <div class="backdrop" id="backdrop"></div>
+<div class="settings" id="settings" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+<div class="settings-panel">
+<header class="settings-head">
+<div class="settings-heading"><h2 id="settingsTitle">设置</h2><p>界面与目录扫描选项只保存在当前浏览器。</p></div>
+<button class="icon-btn" id="settingsClose" type="button" title="关闭设置" aria-label="关闭设置"><svg class="i" aria-hidden="true"><use href="#i-x"></use></svg></button>
+</header>
+<div class="settings-body">
+<section class="settings-section">
+<h3>外观</h3>
+<div class="setting-row">
+<div class="setting-info"><label for="settingsTheme">主题</label><span>可跟随系统，也可固定深色或浅色。</span></div>
+<select class="setting-select" id="settingsTheme">
+<option value="system">跟随系统</option>
+<option value="dark">深色</option>
+<option value="light">浅色</option>
+</select>
+</div>
+<div class="setting-row">
+<div class="setting-info"><label for="settingsFontSize">正文字号</label><span>影响 Markdown 等正文内容。</span></div>
+<div class="setting-control"><input id="settingsFontSize" type="range" min="12" max="24" step="1" aria-describedby="settingsFontSizeValue"><output id="settingsFontSizeValue" for="settingsFontSize">16 px</output></div>
+</div>
+<div class="setting-row">
+<div class="setting-info"><label for="settingsLineHeight">行高</label><span>正文行与行之间的间距。</span></div>
+<div class="setting-control"><input id="settingsLineHeight" type="range" min="1.4" max="2.4" step="0.05" aria-describedby="settingsLineHeightValue"><output id="settingsLineHeightValue" for="settingsLineHeight">1.82</output></div>
+</div>
+<div class="setting-row">
+<div class="setting-info"><label for="settingsReadWidth">阅读宽度</label><span>桌面端正文内容的最大宽度。</span></div>
+<div class="setting-control"><input id="settingsReadWidth" type="range" min="560" max="1400" step="20" aria-describedby="settingsReadWidthValue"><output id="settingsReadWidthValue" for="settingsReadWidth">920 px</output></div>
+</div>
+</section>
+<section class="settings-section">
+<h3>阅读与行为</h3>
+<div class="setting-row">
+<div class="setting-info"><label for="settingsWrap">默认自动换行</label><span>新打开的文本、JSON 和 CSV 默认自动换行。</span></div>
+<label class="switch"><input id="settingsWrap" type="checkbox"><span class="switch-track" aria-hidden="true"></span></label>
+</div>
+<div class="setting-row">
+<div class="setting-info"><label for="settingsAutoRestore">启动时恢复最近文件夹</label><span>权限仍然有效时自动打开最近的目录。</span></div>
+<label class="switch"><input id="settingsAutoRestore" type="checkbox"><span class="switch-track" aria-hidden="true"></span></label>
+</div>
+<div class="setting-row">
+<div class="setting-info"><label for="settingsConfirmClose">关闭未保存标签前确认</label><span>关闭脏标签、切换文件夹或离开页面时提示。</span></div>
+<label class="switch"><input id="settingsConfirmClose" type="checkbox"><span class="switch-track" aria-hidden="true"></span></label>
+</div>
+</section>
+<section class="settings-section">
+<h3>目录扫描</h3>
+<div class="setting-row">
+<div class="setting-info"><label for="settingsMaxFiles">最大文件数</label><span>超出后停止继续收集文件，目录不计入数量。</span></div>
+<div class="setting-control"><input class="setting-number" id="settingsMaxFiles" type="number" min="100" max="100000" step="100" inputmode="numeric"><span class="setting-unit">个</span></div>
+</div>
+<div class="setting-row">
+<div class="setting-info"><label for="settingsMaxDepth">最大目录深度</label><span>根目录为第 0 层，超过后不再向下扫描。</span></div>
+<div class="setting-control"><input class="setting-number" id="settingsMaxDepth" type="number" min="1" max="64" step="1" inputmode="numeric"><span class="setting-unit">层</span></div>
+</div>
+<p class="settings-note">目录扫描设置只统计文件，不包含目录。值越大扫描和渲染越慢；修改后需刷新或重新打开文件夹生效。</p>
+</section>
+</div>
+<footer class="settings-foot">
+<button class="btn small" id="settingsHelp" type="button"><svg class="i" aria-hidden="true"><use href="#i-book"></use></svg>使用说明</button>
+<span class="settings-foot-spacer"></span>
+<button class="btn small" id="settingsClearRecent" type="button">清除最近文件夹</button>
+<button class="btn small" id="settingsReset" type="button">恢复默认设置</button>
+</footer>
+</div>
+</div>
 <div class="palette" id="palette" role="dialog" aria-modal="true" aria-label="快速打开文件">
 <div class="palette-box">
 <div class="palette-input-wrap"><svg class="i" aria-hidden="true"><use href="#i-search"></use></svg><input id="paletteInput" type="text" placeholder="按文件名或路径搜索…" autocomplete="off" spellcheck="false"></div>

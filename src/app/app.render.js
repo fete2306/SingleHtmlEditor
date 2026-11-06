@@ -738,7 +738,7 @@ async function loadFileIntoView(node, opts) {
   if (!keep) {
     var view = tab && tab.view;
     S.sourceMode = !!(view && view.sourceMode);
-    S.wrap = !!(view && view.wrap);
+    S.wrap = view ? !!view.wrap : !!(S.settings && S.settings.wrap);
     S.encoding = view && view.encoding ? view.encoding : 'auto';
     S.decodedEncoding = '';
     S.fullMode = false; S.truncated = false;
