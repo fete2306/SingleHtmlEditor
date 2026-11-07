@@ -17,7 +17,7 @@ var S = {
   sourceMode: false, outline: [], outlineItems: [], activeHeading: -1, filter: '', paletteOpen: false,
   paletteMatches: [], paletteIndex: 0, lightboxOpen: false, theme: 'dark', themeMode: 'system', toastTimer: 0, openToken: 0,
   scrollRaf: 0, objectURLs: [], docURLs: [], imageCache: new Map(), zipCache: null, rootHandle: null,
-  dirHandleCache: new Map(), fileMap: null, fileMapLower: null, fileMapByName: null, readmeText: '', recentFolders: [],
+  dirHandleCache: new Map(), fileMap: null, fileMapLower: null, fileMapByName: null, readmeText: '', sampleText: '', recentFolders: [],
   truncated: false, fullMode: false, encoding: 'auto', decodedEncoding: '', mathFallbacks: 0, stats: null,
   wrap: false, scanLimited: false, scanLimitedDepth: false, scanCount: 0,
   scanApplied: { maxFiles: SCAN_DEFAULT.files, maxDepth: SCAN_DEFAULT.depth, fileLimited: false, depthLimited: false },
@@ -66,6 +66,8 @@ function kindOf(name) {
   if (CODE_EXT[e]) return 'text';
   return 'auto';
 }
+function isBuiltin(node) { return !!(node && (node.readme || node.sample)); }
+function builtinLabel(node) { return node && node.sample ? '示例文档' : '使用说明'; }
 function kindLabel(kind, name) {
   var e = extOf(name).toUpperCase();
   var m = { md: 'Markdown', text: '文本', json: 'JSON', csv: '表格', html: 'HTML', ipynb: 'Notebook', sqlite: 'SQLite', image: '图片', audio: '音频', video: '视频', pdf: 'PDF', font: '字体', archive: '压缩包', binary: '二进制', auto: '文件' };
@@ -259,7 +261,7 @@ function makeRow(node, depth, open) {
   row.appendChild(ic);
   var nm = document.createElement('span'); nm.className = 'tree-name'; nm.textContent = node.name; nm.title = node.path || node.name; row.appendChild(nm);
   if (node.type === 'dir' && node.count) { var c = document.createElement('span'); c.className = 'tree-count'; c.textContent = node.count; row.appendChild(c); }
-  if (S.current && node.type === 'file' && node.path === S.current.path) row.classList.add('active');
+  if (S.current && !isBuiltin(S.current) && node.type === 'file' && node.path === S.current.path) row.classList.add('active');
   return row;
 }
 function buildRows(nodes, depth, q, frag) {
@@ -300,7 +302,7 @@ function activateRow(row, pin) {
 }
 function updateActiveRow(path) {
   $$('.tree-row.active', els.tree).forEach(function (r) { r.classList.remove('active'); });
-  if (!path || (S.current && S.current.readme)) return;
+  if (!path || isBuiltin(S.current)) return;
   var t = $$('.tree-row', els.tree).filter(function (r) { return r.dataset.type === 'file' && r.dataset.path === path; })[0];
   if (t) t.classList.add('active');
 }
@@ -337,7 +339,6 @@ function updateSidebarMeta() {
   els.modePill.textContent = mode.label;
   els.modePill.className = 'mode-pill ' + mode.cls;
   els.fileTotal.textContent = fileCountText();
-  els.welcomeSample.hidden = !S.files.length || S.mode === 'welcome';
   if (S.mode === 'live') {
     els.sideHint.textContent = S.scanLimited || S.scanLimitedDepth ? '实时读取 · 已按设置截断' : '实时读取 · 支持图片和相对链接';
     els.welcomeMeta.textContent = '已连接文件夹，包含 ' + fileCountText();
@@ -354,15 +355,16 @@ function updateSidebarMeta() {
 function updateChrome() {
   var has = !!S.current;
   var k = S.currentKind;
-  var builtin = !!(S.current && S.current.readme);
+  var builtin = isBuiltin(S.current);
+  var builtinName = builtinLabel(S.current);
   els.btnSource.disabled = !has || !hasSource(k) || S.editMode;
   els.btnSource.hidden = !has || !hasSource(k) || S.editMode;
   els.btnSource.classList.toggle('active', !!S.sourceMode);
   els.btnOutline.disabled = !has || !S.outline.length;
   els.btnCopyPath.disabled = !has || builtin;
   els.btnDownload.disabled = !has || builtin;
-  els.btnCopyPath.title = builtin ? '使用说明不可复制路径' : '复制路径';
-  els.btnDownload.title = builtin ? '使用说明不可下载' : '下载当前文件';
+  els.btnCopyPath.title = builtin ? builtinName + '不可复制路径' : '复制路径';
+  els.btnDownload.title = builtin ? builtinName + '不可下载' : '下载当前文件';
   els.btnPrev.disabled = !has;
   els.btnNext.disabled = !has;
   els.btnWrap.hidden = !has || !(S.editMode || k === 'text' || k === 'json' || k === 'csv');
@@ -374,13 +376,14 @@ function updateChrome() {
     els.btnEdit.hidden = !has || !isTextKind(k) || builtin;
     els.btnEdit.disabled = !has || S.truncated || S.editSaving || builtin;
     els.btnEdit.classList.toggle('active', !!S.editMode && !builtin);
-    els.btnEdit.title = builtin ? '内置说明页不可编辑' : (S.editMode ? '退出编辑 (Ctrl+S 保存)' : (S.truncated ? '文件已截断，先加载完整内容再编辑' : '编辑文本'));
+    els.btnEdit.title = builtin ? builtinName + '不可编辑' : (S.editMode ? '退出编辑 (Ctrl+S 保存)' : (S.truncated ? '文件已截断，先加载完整内容再编辑' : '编辑文本'));
   }
 }
 function updateBreadcrumb() {
   els.crumbs.innerHTML = '';
-  if (S.current && S.current.readme) {
-    var help = document.createElement('span'); help.className = 'crumb file'; help.textContent = '使用说明'; help.title = '使用说明'; els.crumbs.appendChild(help);
+  if (isBuiltin(S.current)) {
+    var label = builtinLabel(S.current);
+    var help = document.createElement('span'); help.className = 'crumb file'; help.textContent = label; help.title = label; els.crumbs.appendChild(help);
     return;
   }
   if (!S.rootName) return;
@@ -393,11 +396,11 @@ function updateBreadcrumb() {
 }
 function updateStatusPath() {
   var dirty = S.editDirty ? ' · 未保存' : '';
-  var builtin = !!(S.current && S.current.readme);
-  var label = builtin ? '使用说明' : (S.current ? S.current.path : '');
+  var builtin = isBuiltin(S.current);
+  var label = builtin ? builtinLabel(S.current) : (S.current ? S.current.path : '');
   els.statusPath.textContent = S.current ? label + dirty : '未打开文件';
   els.statusPath.title = S.current ? label : '';
-  document.title = S.current ? (S.editDirty ? '● ' : '') + (builtin ? '使用说明' : S.current.name) + ' · SingleHtmlEditor' : 'SingleHtmlEditor' + (S.rootName ? ' · ' + S.rootName : '');
+  document.title = S.current ? (S.editDirty ? '● ' : '') + (builtin ? label : S.current.name) + ' · SingleHtmlEditor' : 'SingleHtmlEditor' + (S.rootName ? ' · ' + S.rootName : '');
 }
 function updateStatusInfo(info) {
   els.statusInfo.textContent = info || '';
@@ -443,16 +446,11 @@ function activateTree(root, mode, opts) {
   }
   els.filter.value = ''; els.filterBox.classList.remove('has-value'); S.filter = '';
   updateSidebarMeta(); updateChrome(); renderTree();
-  var target = null, restored = false;
-  if (opts.preferPath) target = findFile(opts.preferPath);
-  if (!target && opts.restoreLast !== false) {
-    target = findFile(storeGet(LS.last));
-    restored = !!target;
-  }
-  if (!target) target = S.files[0] || null;
-  if (target) { revealPath(target.path, false); renderTree(); return openFile(target, { anchor: opts.anchor || '', pinned: restored }); }
-  showWelcome('没有找到可显示的文件');
-  return Promise.resolve();
+  var target = opts.preferPath ? findFile(opts.preferPath) : null;
+  if (target) { revealPath(target.path, false); renderTree(); return openFile(target, { anchor: opts.anchor || '' }); }
+  updateQuery('');
+  showWelcome(S.files.length ? '' : '没有找到可显示的文件');
+  return Promise.resolve(true);
 }
 function updatePrevNext() {
   var idx = S.current ? S.files.indexOf(S.current) : -1;
@@ -501,19 +499,20 @@ function scanDir(handle, prefix, name, depth, limit) {
     return node;
   })();
 }
-function useDirectoryHandle(handle) {
+function useDirectoryHandle(handle, opts) {
+  opts = opts || {};
   if (!confirmDiscardTabs('切换文件夹')) return Promise.resolve(false);
   toast('正在扫描文件夹…', 1600);
   els.statusMode.textContent = '扫描中…';
   S.scanCount = 0; S.scanLimited = false; S.scanLimitedDepth = false;
   var limit = newScanLimits();
   S.scanApplied = limit;
-  var prefer = S.current && !S.current.readme ? S.current.path : null;
+  var prefer = opts.preferPath || (opts.preserve && S.current && !isBuiltin(S.current) ? S.current.path : null);
   return scanDir(handle, '', handle.name, 0, limit).then(function (root) {
     S.rootHandle = handle;
     S.scanLimited = limit.fileLimited;
     S.scanLimitedDepth = limit.depthLimited;
-    activateTree(root, 'live', { rootName: handle.name, preferPath: prefer || new URLSearchParams(location.search).get('file') });
+    activateTree(root, 'live', { rootName: handle.name, preferPath: prefer });
     var n = S.files.length;
     var notice = scanNoticeText();
     toast(n ? '已载入 ' + fileCountText() + (notice ? '（已按设置截断）' : '') : '这个文件夹里没有可显示的文件', 2600);
@@ -571,8 +570,7 @@ function useFileItems(items, rootName) {
   S.scanLimitedDepth = limit.depthLimited;
   S.scanApplied = limit;
   S.fileMap = fileMap; S.fileMapLower = fileMapLower; S.fileMapByName = fileMapByName;
-  var prefer = new URLSearchParams(location.search).get('file') || null;
-  return activateTree(root, 'files', { rootName: rootName, preferPath: prefer, restoreLast: false }).then(function (ok) {
+  return activateTree(root, 'files', { rootName: rootName }).then(function (ok) {
     if (limit.fileLimited || limit.depthLimited) toast('已按设置截断文件列表，可在设置中调整限制', 2800);
     return ok;
   });
@@ -633,7 +631,7 @@ function pickFolder() {
 }
 function pickFiles() { closeSidebarMobile(); els.fileInput.value = ''; els.fileInput.click(); }
 function refreshTree() {
-  if (S.mode === 'live' && S.rootHandle) { useDirectoryHandle(S.rootHandle); return; }
+  if (S.mode === 'live' && S.rootHandle) { useDirectoryHandle(S.rootHandle, { preserve: true }); return; }
   if (S.mode === 'files') { toast('请重新选择文件夹或文件', 2200); pickFolder(); return; }
   if (S.mode === 'welcome') {
     if (S.recentFolders && S.recentFolders.length) { restoreRecentFolder(0); return; }

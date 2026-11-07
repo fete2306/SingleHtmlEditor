@@ -2,6 +2,7 @@ var DRAFT_CHAR_LIMIT = 20 * 1024 * 1024;
 
 function tabIdOf(node) {
   if (!node) return '';
+  if (node.sample) return 'sample';
   if (node.readme) return 'help';
   if (node.virtualParent) return 'zip:' + node.path;
   return 'file:' + node.path;
@@ -71,14 +72,14 @@ function pinTab(tab) {
 function tabLabel(tab) {
   var node = tab && tab.node;
   if (!node) return '文件';
-  if (node.readme) return '使用说明';
+  if (isBuiltin(node)) return builtinLabel(node);
   return node.name || basename(node.path) || '文件';
 }
 
 function tabTitle(tab) {
   var node = tab && tab.node;
   if (!node) return '';
-  if (node.readme) return '使用说明';
+  if (isBuiltin(node)) return builtinLabel(node);
   var title = node.path || node.name || '';
   if (tab.preview) title = '预览 · ' + title;
   return tabDirty(tab) ? '未保存 · ' + title : title;
@@ -203,7 +204,7 @@ function activateTab(tab, opts) {
   return Promise.resolve(loadFileIntoView(tab.node, nextOpts)).then(function () {
     if (S.activeTab === tab) {
       if (!nextOpts.anchor) els.scroll.scrollTop = scroll;
-      updateActiveRow(tab.node.virtualParent || tab.node.readme ? null : tab.node.path);
+      updateActiveRow(tab.node.virtualParent || isBuiltin(tab.node) ? null : tab.node.path);
       scrollActiveTabIntoView();
     }
     return true;
@@ -218,7 +219,7 @@ function openFile(node, opts) {
   opts = opts || {};
   if (!node) return Promise.resolve(false);
   if (S.editSaving) { toast('正在保存，请稍候…', 1800); return Promise.resolve(false); }
-  if (node.readme) opts.pinned = true;
+  if (isBuiltin(node)) opts.pinned = true;
   var existing = findTabById(tabIdOf(node));
   if (existing) {
     if (opts.pinned) pinTab(existing);

@@ -39,6 +39,7 @@ script = "\n".join(
 
 shell = read("shell.html")
 readme = read("readme.md").replace("</script", "<\\/script")
+sample = (ROOT / "示例.md").read_text(encoding="utf-8").replace("</script", "<\\/script")
 
 boot = r'''<script>
 (function () {
@@ -87,9 +88,10 @@ if libs not in html:
     raise SystemExit("missing library markers")
 html = html.replace(libs, payloads, 1)
 html = html.replace("/*README*/", readme, 1)
+html = html.replace("/*SAMPLE*/", sample, 1)
 html = html.replace("<script>/*APP*/</script>", boot, 1)
 
-for marker in ("/*CSS*/", "/*MARKED*/", "/*PURIFY*/", "/*README*/", "/*APP*/"):
+for marker in ("/*CSS*/", "/*MARKED*/", "/*PURIFY*/", "/*README*/", "/*SAMPLE*/", "/*APP*/"):
     if marker in html:
         raise SystemExit("unreplaced marker: " + marker)
 

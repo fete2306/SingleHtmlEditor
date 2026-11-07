@@ -745,8 +745,8 @@ async function loadFileIntoView(node, opts) {
     S.editMode = false; S.editDirty = false; S.editOriginal = ''; S.editText = ''; S.editSaving = false;
   }
   S.raw = ''; S.currentBlob = null; S.currentURL = ''; S.outline = []; S.outlineItems = []; S.activeHeading = -1; S.mathFallbacks = 0; S.fontFamily = '';
-  if (node.virtualParent) renderTree(); else if (!node.readme) revealPath(node.path, true);
-  updateActiveRow(node.virtualParent || node.readme ? null : node.path);
+  if (node.virtualParent) renderTree(); else if (!isBuiltin(node)) revealPath(node.path, true);
+  updateActiveRow(node.virtualParent || isBuiltin(node) ? null : node.path);
   updateBreadcrumb(); updateStatusPath(); updateChrome();
   els.scroll.scrollTop = 0;
   setProgress(8);
@@ -769,7 +769,7 @@ async function loadFileIntoView(node, opts) {
     else if (S.currentKind === 'sqlite') await renderSqlite(node);
     else await renderAuto(node);
     if (token !== S.openToken) return;
-    if (!node.virtualParent && !node.readme && !opts.noHistory) { storeSet(LS.last, node.path); updateQuery(node.path); }
+    if (!node.virtualParent && !isBuiltin(node) && !opts.noHistory) { storeSet(LS.last, node.path); updateQuery(node.path); }
     updateChrome(); updatePrevNext(); updateOutlineActive();
     if (opts.anchor) setTimeout(function () { scrollToHeading(opts.anchor); }, 60);
   } catch (err) {

@@ -1,5 +1,5 @@
 function canEditCurrent() {
-  return !!S.current && isTextKind(S.currentKind) && !S.truncated && !S.current.readme;
+  return !!S.current && isTextKind(S.currentKind) && !S.truncated && !isBuiltin(S.current);
 }
 function editDirtyNow() {
   return S.editMode && S.editText !== S.editOriginal;
@@ -113,7 +113,7 @@ async function restoreEditTab(tab, opts, token) {
   S.editSaving = false;
   renderEditor(edit);
   finishProgress();
-  if (!node.virtualParent && !node.readme && !opts.noHistory) { storeSet(LS.last, node.path); updateQuery(node.path); }
+  if (!node.virtualParent && !isBuiltin(node) && !opts.noHistory) { storeSet(LS.last, node.path); updateQuery(node.path); }
   updateChrome(); updatePrevNext(); updateOutlineActive();
   return true;
 }
@@ -121,7 +121,7 @@ async function restoreEditTab(tab, opts, token) {
 function enterEdit() {
   if (S.editMode) return;
   if (!S.current) return;
-  if (S.current.readme) { toast('内置说明页不可编辑', 2200); return; }
+  if (isBuiltin(S.current)) { toast(builtinLabel(S.current) + '不可编辑', 2200); return; }
   if (!isTextKind(S.currentKind)) { toast('这个文件类型不支持文本编辑', 2200); return; }
   if (S.truncated) { toast('文件已截断，请先点“加载全部”再编辑', 3200); return; }
   pinTab(S.activeTab);
@@ -159,7 +159,7 @@ function editBlob(text) {
 async function saveEdit() {
   if (!S.editMode || S.editSaving) return;
   if (!S.current) return;
-  if (S.current.readme) { toast('内置说明页不可编辑', 2200); return; }
+  if (isBuiltin(S.current)) { toast(builtinLabel(S.current) + '不可编辑', 2200); return; }
   if (S.truncated) { toast('文件已截断，不能直接覆盖原文件', 3200); return; }
   if (!editDirtyNow()) { toast('没有需要保存的修改', 1800); return; }
   var node = S.current, text = S.editText, blob = editBlob(text);

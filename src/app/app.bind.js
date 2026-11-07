@@ -249,10 +249,11 @@ function onContentClick(event) {
   }
 }
 
-function readReadmeText() {
-  var el = document.getElementById('readme-data');
+function readBuiltinText(id) {
+  var el = document.getElementById(id);
   return el ? String(el.textContent || '') : '';
 }
+function readReadmeText() { return readBuiltinText('readme-data'); }
 
 var RECENT_DB = 'she-recent';
 var RECENT_STORE = 'recent-folders';
@@ -384,6 +385,16 @@ function showReadme() {
   var node = { type: 'file', name: 'README.md', path: 'README.md', content: String(text), size: String(text).length, readme: true };
   return openFile(node, { pinned: true });
 }
+function showSample() {
+  var text = S.sampleText ? S.sampleText : readBuiltinText('sample-data');
+  S.sampleText = text;
+  if (!String(text || '').trim()) {
+    toast('未找到内置示例内容', 2600);
+    return Promise.resolve(false);
+  }
+  var node = { type: 'file', name: '示例.md', path: '示例.md', content: String(text), size: String(text).length, sample: true };
+  return openFile(node, { pinned: true });
+}
 function restoreRecentFolder(arg) {
   var rec = null;
   if (arg && typeof arg === 'object' && arg.kind === 'directory') rec = { handle: arg, name: arg.name || '文件夹' };
@@ -417,6 +428,7 @@ function restoreRecentFolder(arg) {
 }
 function initStartup() {
   S.readmeText = readReadmeText();
+  S.sampleText = readBuiltinText('sample-data');
   S.mode = 'welcome';
   renderRecentPanel();
   return loadRecentFolders().then(function (list) {
@@ -425,7 +437,7 @@ function initStartup() {
     if (!latest || !latest.handle || typeof latest.handle.queryPermission !== 'function') return showWelcome();
     return Promise.resolve(latest.handle.queryPermission({ mode: 'read' })).then(function (perm) {
       if (perm !== 'granted') return showWelcome();
-      return useDirectoryHandle(latest.handle).then(function (ok) {
+      return useDirectoryHandle(latest.handle, { preferPath: new URLSearchParams(location.search).get('file') || null }).then(function (ok) {
         if (!ok) return showWelcome();
       });
     });
@@ -506,11 +518,7 @@ function bind() {
   [els.btnOpenFiles, els.btnOpenFiles2, els.welcomeFiles].forEach(function (btn) {
     if (btn) btn.addEventListener('click', pickFiles);
   });
-  els.welcomeSample.addEventListener('click', function () {
-    if (!S.files.length) return;
-    var md = S.files.filter(function (f) { return kindOf(f.name) === 'md'; })[0];
-    openFile(md || S.files[0]);
-  });
+  els.welcomeSample.addEventListener('click', function () { showSample(); });
   if (els.welcomeHelp) els.welcomeHelp.addEventListener('click', function () { showReadme(); });
   if (els.welcomePalette) els.welcomePalette.addEventListener('click', openPalette);
   els.btnTheme.addEventListener('click', function () { applyTheme(S.theme === 'dark' ? 'light' : 'dark'); });
