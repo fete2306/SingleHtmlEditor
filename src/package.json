@@ -1,0 +1,11 @@
+{
+  "name": "single-html-editor-build",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "minify": "node minify.js"
+  },
+  "devDependencies": {
+    "terser": "5.51.2"
+  }
+}

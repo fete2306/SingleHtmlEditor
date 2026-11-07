@@ -4,11 +4,11 @@ function canEditCurrent() {
 function editDirtyNow() {
   return S.editMode && S.editText !== S.editOriginal;
 }
-function updateEditMeta() {
+function updateEditMeta(skipStats) {
   if (!S.editMode || !S.current) return;
   S.editDirty = editDirtyNow();
   updateStatusInfo('编辑 · ' + (S.editDirty ? '未保存 · ' : '') + 'Ctrl+S 保存 · Esc 取消');
-  updateStats(S.editText);
+  if (!skipStats) updateStats(S.editText);
   updateStatusPath();
   updateChrome();
   updateActiveTabDirty();
@@ -29,7 +29,7 @@ function renderEditor(state) {
   ta.value = S.editText;
   ta.spellcheck = false;
   ta.setAttribute('aria-label', '编辑 ' + S.current.name);
-  var raf = 0;
+  var raf = 0, paintTimer = 0, statsTimer = 0;
   function editorSyncScroll() {
     hl.scrollTop = ta.scrollTop;
     hl.scrollLeft = ta.scrollLeft;
@@ -43,13 +43,31 @@ function renderEditor(state) {
     editorSyncScroll();
   }
   function editorQueuePaint() {
+    if (ta.value.length > HL_MAX) {
+      if (raf) { cancelAnimationFrame(raf); raf = 0; }
+      if (paintTimer) clearTimeout(paintTimer);
+      paintTimer = setTimeout(function () {
+        paintTimer = 0;
+        if (ta.isConnected) editorPaint();
+      }, 150);
+      return;
+    }
+    if (paintTimer) { clearTimeout(paintTimer); paintTimer = 0; }
     if (raf) return;
     raf = requestAnimationFrame(editorPaint);
+  }
+  function editorQueueStats() {
+    if (statsTimer) clearTimeout(statsTimer);
+    statsTimer = setTimeout(function () {
+      statsTimer = 0;
+      if (ta.isConnected) updateStats(S.editText);
+    }, 180);
   }
   ta.addEventListener('input', function () {
     S.editText = ta.value;
     S.raw = ta.value;
-    updateEditMeta();
+    updateEditMeta(true);
+    editorQueueStats();
     editorQueuePaint();
   });
   ta.addEventListener('scroll', editorSyncScroll, { passive: true });

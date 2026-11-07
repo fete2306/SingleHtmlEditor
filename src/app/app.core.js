@@ -233,8 +233,17 @@ function revealPath(path, rerender) {
   if (changed && rerender !== false) renderTree();
   return changed;
 }
+function nodeLower(node, field) {
+  var key = field + 'Lower';
+  if (node[key] == null) node[key] = String(node[field] || '').toLowerCase();
+  return node[key];
+}
+function nodeSearchText(node) {
+  if (node.searchText == null) node.searchText = nodeLower(node, 'path') + ' ' + nodeLower(node, 'name');
+  return node.searchText;
+}
 function subtreeMatches(node, q) {
-  if (node.type === 'file') return (node.path + ' ' + node.name).toLowerCase().indexOf(q) >= 0;
+  if (node.type === 'file') return nodeSearchText(node).indexOf(q) >= 0;
   for (var i = 0; i < node.children.length; i++) if (subtreeMatches(node.children[i], q)) return true;
   return false;
 }
@@ -267,7 +276,7 @@ function makeRow(node, depth, open) {
 function buildRows(nodes, depth, q, frag) {
   nodes.forEach(function (node) {
     if (node.type === 'file') {
-      if (q && (node.path + ' ' + node.name).toLowerCase().indexOf(q) < 0) return;
+      if (q && nodeSearchText(node).indexOf(q) < 0) return;
       frag.appendChild(makeRow(node, depth, false));
       return;
     }

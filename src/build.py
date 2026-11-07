@@ -2,11 +2,24 @@ from pathlib import Path
 import base64
 import gzip
 import hashlib
+import re
 import sys
 
 SRC = Path(__file__).resolve().parent
 ROOT = SRC.parent
 OUT = Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else ROOT / "SingleHtmlEditor.html"
+APP_NAMES = (
+    "app.core.js",
+    "app.settings.js",
+    "app.math.js",
+    "app.zip.js",
+    "app.highlight.js",
+    "app.db.js",
+    "app.render.js",
+    "app.tabs.js",
+    "app.edit.js",
+    "app.bind.js",
+)
 
 
 def read(rel):
@@ -21,21 +34,13 @@ css = "\n".join(
     read("css/" + name)
     for name in ("base.css", "add.css", "extra.css")
 )
-script = "\n".join(
-    read("app/" + name)
-    for name in (
-        "app.core.js",
-        "app.settings.js",
-        "app.math.js",
-        "app.zip.js",
-        "app.highlight.js",
-        "app.db.js",
-        "app.render.js",
-        "app.tabs.js",
-        "app.edit.js",
-        "app.bind.js",
-    )
-)
+source = "\n".join(read("app/" + name) for name in APP_NAMES)
+script = read("app/app.min.js")
+match = re.search(r"source SHA-256: ([0-9a-f]{64})", script.split("\n", 1)[0])
+if not match:
+    raise SystemExit("app.min.js has no source SHA-256 header")
+if match.group(1) != hashlib.sha256(source.encode("utf-8")).hexdigest():
+    raise SystemExit("app.min.js is stale; run npm run minify in src/")
 
 shell = read("shell.html")
 readme = read("readme.md").replace("</script", "<\\/script")

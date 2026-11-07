@@ -5,9 +5,9 @@ function toggleSource() {
   reopenCurrent();
 }
 
-function fuzzyScore(query, text) {
+function fuzzyScore(query, text, lower) {
   if (!query) return { score: 0, positions: [] };
-  var s = String(text || '').toLowerCase();
+  var s = lower == null ? String(text || '').toLowerCase() : lower;
   var positions = [], ti = 0, score = 0, streak = 0, prev = -2;
   for (var qi = 0; qi < query.length; qi++) {
     var ch = query.charAt(qi);
@@ -45,8 +45,10 @@ function highlightText(text, positions) {
   return out;
 }
 
+var paletteTimer = 0;
 function openPalette() {
   if (!S.files.length) { toast('当前没有可打开的文件'); return; }
+  if (paletteTimer) { clearTimeout(paletteTimer); paletteTimer = 0; }
   S.paletteOpen = true;
   els.palette.classList.add('show');
   els.paletteInput.value = '';
@@ -57,6 +59,13 @@ function openPalette() {
 function closePalette() {
   S.paletteOpen = false;
   els.palette.classList.remove('show');
+}
+function queuePaletteRender() {
+  if (paletteTimer) clearTimeout(paletteTimer);
+  paletteTimer = setTimeout(function () {
+    paletteTimer = 0;
+    if (S.paletteOpen) renderPalette();
+  }, 70);
 }
 function setPaletteActive(index) {
   var rows = $$('.palette-item', els.paletteList);
@@ -72,24 +81,26 @@ function setPaletteActive(index) {
 function renderPalette() {
   var query = els.paletteInput.value.trim().toLowerCase();
   var results = [];
-  S.files.forEach(function (node) {
-    if (!query) {
-      results.push({ node: node, score: 0, basePositions: null, pathPositions: null, byPath: false });
-      return;
-    }
-    var base = fuzzyScore(query, node.name);
-    if (base) {
-      results.push({ node: node, score: base.score + 1000, basePositions: base.positions, pathPositions: null, byPath: false });
-      return;
-    }
-    var path = fuzzyScore(query, node.path);
-    if (path) results.push({ node: node, score: path.score, basePositions: null, pathPositions: path.positions, byPath: true });
-  });
-  results.sort(function (a, b) {
-    if (b.score !== a.score) return b.score - a.score;
-    return collator.compare(a.node.path, b.node.path);
-  });
-  S.paletteMatches = results.slice(0, 100);
+  if (!query) {
+    S.paletteMatches = S.files.slice(0, 100).map(function (node) {
+      return { node: node, score: 0, basePositions: null, pathPositions: null, byPath: false };
+    });
+  } else {
+    S.files.forEach(function (node) {
+      var base = fuzzyScore(query, node.name, nodeLower(node, 'name'));
+      if (base) {
+        results.push({ node: node, score: base.score + 1000, basePositions: base.positions, pathPositions: null, byPath: false });
+        return;
+      }
+      var path = fuzzyScore(query, node.path, nodeLower(node, 'path'));
+      if (path) results.push({ node: node, score: path.score, basePositions: null, pathPositions: path.positions, byPath: true });
+    });
+    results.sort(function (a, b) {
+      if (b.score !== a.score) return b.score - a.score;
+      return collator.compare(a.node.path, b.node.path);
+    });
+    S.paletteMatches = results.slice(0, 100);
+  }
   S.paletteIndex = 0;
   els.paletteList.innerHTML = '';
   if (!S.paletteMatches.length) {
@@ -512,6 +523,15 @@ function bindDragDrop() {
 }
 
 function bind() {
+  var filterTimer = 0;
+  function renderTreeSoon() {
+    if (filterTimer) clearTimeout(filterTimer);
+    filterTimer = setTimeout(function () { filterTimer = 0; renderTree(); }, 80);
+  }
+  function renderTreeNow() {
+    if (filterTimer) { clearTimeout(filterTimer); filterTimer = 0; }
+    renderTree();
+  }
   [els.btnOpenDir, els.btnOpenDir2, els.welcomeOpen].forEach(function (btn) {
     if (btn) btn.addEventListener('click', pickFolder);
   });
@@ -557,8 +577,9 @@ function bind() {
     reopenCurrent();
   });
   els.btnOutline.addEventListener('click', function () {
-    els.main.classList.toggle('outline-open');
-    els.btnOutline.classList.toggle('active', els.main.classList.contains('outline-open'));
+    var open = els.main.classList.toggle('outline-open');
+    els.btnOutline.classList.toggle('active', open);
+    if (open) updateOutlineActive();
   });
   els.btnOutlineClose.addEventListener('click', function () {
     els.main.classList.remove('outline-open');
@@ -571,7 +592,7 @@ function bind() {
   els.filter.addEventListener('input', function () {
     S.filter = els.filter.value.trim().toLowerCase();
     els.filterBox.classList.toggle('has-value', !!els.filter.value);
-    renderTree();
+    renderTreeSoon();
   });
   els.filter.addEventListener('keydown', function (event) {
     if (event.key !== 'Escape') return;
@@ -579,13 +600,13 @@ function bind() {
     els.filter.value = '';
     els.filterBox.classList.remove('has-value');
     S.filter = '';
-    renderTree();
+    renderTreeNow();
   });
   els.filterClear.addEventListener('click', function () {
     els.filter.value = '';
     els.filterBox.classList.remove('has-value');
     S.filter = '';
-    renderTree();
+    renderTreeNow();
     els.filter.focus();
   });
   els.tabstrip.addEventListener('click', function (event) {
@@ -674,8 +695,9 @@ function bind() {
   els.palette.addEventListener('click', function (event) {
     if (event.target === els.palette) closePalette();
   });
-  els.paletteInput.addEventListener('input', renderPalette);
+  els.paletteInput.addEventListener('input', queuePaletteRender);
   els.paletteInput.addEventListener('keydown', function (event) {
+    if (paletteTimer) { clearTimeout(paletteTimer); paletteTimer = 0; renderPalette(); }
     if (event.key === 'ArrowDown') {
       event.preventDefault();
       setPaletteActive(S.paletteIndex + 1);

@@ -18,6 +18,7 @@ SingleHtmlEditor 是一个可直接双击打开、完全离线运行的单文件
 - 独立说明标签：使用说明以可关闭的固定标签打开，不计入文件树和文件数，关闭后回到之前内容或欢迎页。
 - 多格式预览：覆盖常见文档、代码、表格、图片、媒体、压缩包和数据库文件。
 - 轻量编辑：文本类文件可进入编辑模式，支持语法高亮、`Ctrl+S` 保存和未保存提示；切换标签会保留每标签草稿。
+- 大文件优化：编辑高亮和字数统计按空闲合并，目录过滤与快速打开防抖并缓存路径，减少连续输入时的卡顿。
 - 快速导航：`Ctrl+P` 模糊快速打开，Markdown/Notebook 支持大纲，图片支持灯箱查看。
 - 状态记忆：保存主题模式、阅读外观、目录扫描设置、侧栏宽度、上次文件和最近 5 个文件夹；最近记录只保存目录句柄、名称和时间，不保存绝对路径。
 - 响应式界面：桌面活动栏 + 双栏布局，窄屏保留活动栏并切换为抽屉式侧栏。
@@ -170,6 +171,8 @@ SingleHtmlEditor.html
 ```text
 src/
 ├─ build.py
+├─ minify.js
+├─ package.json
 ├─ shell.html
 ├─ readme.md
 ├─ css/
@@ -186,17 +189,28 @@ src/
 │  ├─ app.render.js
 │  ├─ app.tabs.js
 │  ├─ app.edit.js
-│  └─ app.bind.js
+│  ├─ app.bind.js
+│  └─ app.min.js
 └─ vendor/
    ├─ marked.js
    └─ purify.js
 ```
 
-构建时，`src/build.py` 按固定顺序拼接 CSS 和 JavaScript，把 `marked`、`DOMPurify` 与应用代码一起 gzip 压缩并 Base64 编码，再替换 `shell.html` 中的占位符，直接生成根目录的 `SingleHtmlEditor.html`。构建过程不会生成 `app.js`、`app.css`、测试页或其他中间文件。
+`src/app/app.min.js` 是由上述应用源码经 Terser 压缩后的提交产物，首行记录源码 SHA-256。`src/build.py` 按固定顺序拼接 CSS，读取并校验 `app.min.js`，再把 `marked`、`DOMPurify` 和压缩后的应用代码一起 gzip 压缩并 Base64 编码，最后替换 `shell.html` 中的占位符，直接生成根目录的 `SingleHtmlEditor.html`。构建过程不会生成 `app.js`、`app.css`、测试页或其他中间文件。
+
+修改 `src/app/*.js` 后，需要在 `src/` 中安装依赖并重新生成压缩产物：
+
+```powershell
+cd src
+npm install
+npm run minify
+```
+
+`src/package.json` 将 Terser 固定为 5.51.2。`build.py` 会检测 `app.min.js` 的源码哈希，源码与压缩产物不一致时停止构建并提示重新运行 `npm run minify`。
 
 ## 构建
 
-运行环境只需要 Python 3.8+ 和标准库，不需要 Node.js、npm 或网络：
+正式构建只需要 Python 3.8+ 和标准库，不需要 Node.js、npm 或网络；应用压缩产物已提交在 `src/app/app.min.js`：
 
 ```powershell
 python src\build.py
@@ -208,7 +222,7 @@ python src\build.py
 python src\build.py path\to\SingleHtmlEditor.html
 ```
 
-脚本会输出文件路径、字节数和 SHA-256。构建使用固定顺序、固定 gzip 参数和 LF 换行，同一份源码应生成相同文件。
+脚本会输出文件路径、字节数和 SHA-256。构建使用固定顺序、固定 gzip 参数和 LF 换行，同一份源码应生成相同文件。只有修改 `src/app/*.js` 并重新生成 `app.min.js` 时才需要 Node.js、npm 和 Terser，步骤见上一节。
 
 ## 配置要求
 
@@ -222,7 +236,7 @@ python src\build.py path\to\SingleHtmlEditor.html
 | 其他浏览器 | Firefox / Safari 可阅读和选择文件，但通常不能直接写回目录 |
 | 网络 | 不需要 |
 | 安装 | 不需要 |
-| 构建环境 | Python 3.8+，仅标准库 |
+| 构建环境 | Python 3.8+，仅标准库；重新生成 `app.min.js` 另需 Node.js 与 Terser |
 
 ### 浏览器能力
 
@@ -289,8 +303,8 @@ python src\build.py path\to\SingleHtmlEditor.html
 
 ```text
 文件：SingleHtmlEditor.html
-大小：161,820 字节
-SHA-256：256665d8f14f2c46bc07c9bf4d6326434c496ef96ea493fc6b2da93c802ae1b8
+大小：144,600 字节
+SHA-256：549f7673dfe66da7557e14fa574794e25ae59cd18367eb9b75e3031c90f5e82d
 ```
 
 重新构建后可用上面的 SHA-256 校验生成结果是否一致。
@@ -298,8 +312,8 @@ SHA-256：256665d8f14f2c46bc07c9bf4d6326434c496ef96ea493fc6b2da93c802ae1b8
 ## 验证状态
 
 - 2026-11-07：Chrome 156.0.8078.81 未压缩测试页回归 54/54 通过，console 与 exception 均为空。
-- 2026-11-07：Chrome 156.0.8078.81 与 Edge 156.0.4314.58 正式版冒烟通过，欢迎页、内置示例、说明页、主题切换和最近目录恢复均正常；恢复目录树后停留在欢迎页，点击文件才打开内容。
-- 正式版由 `python src\build.py` 从当前源码确定性构建，输出大小和 SHA-256 如上。
+- 2026-11-07：Chrome 156.0.8078.81 与 Edge 156.0.4314.58 正式版（应用代码经 Terser 压缩）冒烟通过，欢迎页、内置示例、说明页、主题切换和最近目录恢复均正常；恢复目录树后停留在欢迎页，点击文件才打开内容。
+- 正式版由 `python src\build.py` 从当前源码确定性构建，构建时校验 `app.min.js` 的源码哈希，输出大小和 SHA-256 如上。
 
 ## 许可证
 

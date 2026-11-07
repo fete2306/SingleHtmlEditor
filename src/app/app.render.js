@@ -216,7 +216,7 @@ function scrollToHeading(id) {
   els.scroll.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
 }
 function updateOutlineActive() {
-  if (!S.outlineItems.length) return;
+  if (!S.outlineItems.length || !els.main.classList.contains('outline-open')) return;
   var base = els.scroll.getBoundingClientRect().top, top = 64, idx = -1;
   for (var i = 0; i < S.outlineItems.length; i++) {
     var h = S.outlineItems[i];
@@ -286,9 +286,14 @@ function assetBlob(rawPath, basePath) {
     if (S.fileMap) f = S.fileMap.get(p) || S.fileMapLower.get(p.toLowerCase());
     if (!f && S.fileMapByName) f = S.fileMapByName.get(basename(p).toLowerCase());
     if (!f) {
-      var cand = S.files.filter(function (n) { return n.path.toLowerCase().slice(-p.length - 1) === '/' + p.toLowerCase(); });
-      if (cand.length === 1) f = null;
-      if (cand.length === 1) promise = getBlob(cand[0]);
+      var suffix = '/' + p.toLowerCase(), cand = null, hits = 0;
+      for (var i = 0; i < S.files.length; i++) {
+        if (nodeLower(S.files[i], 'path').slice(-suffix.length) === suffix) {
+          cand = S.files[i];
+          if (++hits > 1) break;
+        }
+      }
+      if (hits === 1) promise = getBlob(cand);
     }
     if (!promise && f) promise = Promise.resolve(f);
   } else if (S.mode === 'live') {
