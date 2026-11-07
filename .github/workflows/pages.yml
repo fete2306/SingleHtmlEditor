@@ -26,6 +26,7 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     env:
       TAG: ${{ github.event.release.tag_name || inputs.tag }}
+      GH_REPO: ${{ github.repository }}
     steps:
       - name: Download release asset
         env:
