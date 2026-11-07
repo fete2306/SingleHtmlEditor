@@ -303,8 +303,8 @@ python src\build.py path\to\SingleHtmlEditor.html
 
 ```text
 文件：SingleHtmlEditor.html
-大小：144,600 字节
-SHA-256：549f7673dfe66da7557e14fa574794e25ae59cd18367eb9b75e3031c90f5e82d
+大小：144,523 字节
+SHA-256：a0070fdf355b74e13ab4e53857c191539a7bd1eb82ad5d27a6b803c93fbff90e
 ```
 
 重新构建后可用上面的 SHA-256 校验生成结果是否一致。
